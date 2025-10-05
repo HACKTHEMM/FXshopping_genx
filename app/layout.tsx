@@ -1,15 +1,25 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const valve = localFont({
+  variable: "--font-valve",
+  src: [
+    { path: "../fonts/PPValve-PlainExtralight.otf", weight: "200", style: "normal" },
+    { path: "../fonts/PPValve-PlainExtralightItalic.otf", weight: "200", style: "italic" },
+    { path: "../fonts/PPValve-PlainMedium.otf", weight: "500", style: "normal" },
+    { path: "../fonts/PPValve-PlainMediumItalic.otf", weight: "500", style: "italic" },
+    { path: "../fonts/PPValve-PlainExtrabold.otf", weight: "800", style: "normal" },
+    { path: "../fonts/PPValve-PlainExtraboldItalic.otf", weight: "800", style: "italic" },
+  ],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -25,7 +35,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${valve.variable} ${inter.variable} antialiased`}
       >
         {children}
       </body>

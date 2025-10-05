@@ -12,7 +12,7 @@ export default function Navbar({ activeTab, onTabChange }: NavbarProps) {
     <header className="bg-white px-8 py-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-8">
-          <h1 className="text-2xl font-bold text-black">GROSH</h1>
+          <h1 className="text-2xl font-bold text-black">LumenFX </h1>
           <nav className="hidden md:flex space-x-8">
             {['Dashboard', 'Transactions', 'Settings'].map((tab) => (
               <button
