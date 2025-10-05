@@ -37,7 +37,7 @@ export default function Navbar({ activeTab, onTabChange, onLogout }: NavbarProps
 
         <div className="flex items-center space-x-6">
           <div className="hidden sm:flex items-center space-x-2">
-            <span className="text-sm text-gray-600">Your wallet address</span>
+            {/* <span className="text-sm text-gray-600">Your wallet address</span> */}
             <span className="text-sm font-mono text-black">0x62D58207...6987f3588</span>
             <button className="p-1 text-gray-400 hover:text-gray-600">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
