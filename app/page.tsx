@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Transactions from './components/Transactions';
+import Settings from './components/Settings';
+import Login from './components/Login';
 
 const savingsData = [
   { month: 'Jan', amount: 50 },
@@ -21,19 +23,38 @@ const savingsData = [
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('Dashboard');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const maxAmount = Math.max(...savingsData.map(d => d.amount));
+
+  useEffect(() => {
+    // Check if user is authenticated (you can implement proper auth logic here)
+    const authStatus = localStorage.getItem('isAuthenticated');
+    setIsAuthenticated(authStatus === 'true');
+  }, []);
+
+  const handleLogin = () => {
+    localStorage.setItem('isAuthenticated', 'true');
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('isAuthenticated');
+    setIsAuthenticated(false);
+  };
 
   const renderContent = () => {
     switch (activeTab) {
       case 'Transactions':
         return <Transactions />;
+      case 'Settings':
+        return <Settings onTabChange={setActiveTab} />;
       case 'Dashboard':
       default:
         return (
           <main className="h-full px-8 py-6 overflow-hidden">
-            <div className="h-full grid grid-cols-12 grid-rows-[auto,1fr] gap-6 pb-6">
+            <div className="h-full grid grid-cols-12 grid-rows-[auto,1fr] gap-6 pb-10">
               {/* Section Title top-left */}
-              <div className="col-span-6">
+              <div className="col-span-5">
                 <h2 className="text-4xl font-bold text-black">Wallet & Savings</h2>
               </div>
 
@@ -70,9 +91,9 @@ export default function Dashboard() {
               </div>
 
               {/* Bottom-left hero text */}
-              <div className="col-span-12 lg:col-span-6 row-start-2 flex flex-col justify-end">
+              <div className="col-span-12 lg:col-span-5 row-start-2 flex flex-col justify-end">
                 <div className="space-y-3">
-                  <h3 className="text-4xl md:text-5xl lg:text-6xl font-medium text-black leading-[1.05]">
+                  <h3 className="text-2xl md:text-5xl lg:text-6xl font-medium text-black leading-[1.05]">
                     Great! <span className="text-blue-600">Savings increased by 13,8%</span> in the
                     <br /> past 30 days.
                   </h3>
@@ -89,7 +110,7 @@ export default function Dashboard() {
               </div>
 
               {/* Bottom-right cards next to the text */}
-              <div className="col-span-12 lg:col-start-8 lg:col-span-5 row-start-2 grid grid-cols-2 gap-4 content-end">
+              <div className="col-span-12 lg:col-start-7 lg:col-span-6 row-start-2 grid grid-cols-2 gap-4 content-end">
                 <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 border border-blue-200">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-gray-900">Wallet</h3>
@@ -165,6 +186,10 @@ export default function Dashboard() {
         );
     }
   };
+
+  if (!isAuthenticated) {
+    return <Login onLogin={handleLogin} />;
+  }
 
   return (
     <div className="h-screen overflow-hidden bg-white flex flex-col">
