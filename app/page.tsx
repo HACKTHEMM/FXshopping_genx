@@ -1,460 +1,449 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Navbar from './components/Navbar';
-import Transactions from './components/Transactions';
-import Settings from './components/Settings';
-import Login from './components/Login';
+import { useState } from 'react';
+import Link from 'next/link';
 
-const savingsData = [
-  { month: 'Jan', amount: 50 },
-  { month: 'Feb', amount: 67 },
-  { month: 'Mar', amount: 109 },
-  { month: 'Apr', amount: 149 },
-  { month: 'May', amount: 152 },
-  { month: 'Jun', amount: 156 },
-  { month: 'Jul', amount: 164 },
-  { month: 'Aug', amount: 201 },
-  { month: 'Sep', amount: 212 },
-  { month: 'Oct', amount: 238 },
-  { month: 'Nov', amount: 241 },
-  { month: 'Dec', amount: 263 },
-];
+export default function LandingPage() {
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState('Dashboard');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const maxAmount = Math.max(...savingsData.map(d => d.amount));
-
-  useEffect(() => {
-    // Check if user is authenticated (you can implement proper auth logic here)
-    const authStatus = localStorage.getItem('isAuthenticated');
-    setIsAuthenticated(authStatus === 'true');
-  }, []);
-
-  const handleLogin = () => {
-    localStorage.setItem('isAuthenticated', 'true');
-    setIsAuthenticated(true);
+  const toggleFaq = (index: number) => {
+    setOpenFaq(openFaq === index ? null : index);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated');
-    setIsAuthenticated(false);
-  };
+  const faqs = [
+    {
+      question: "Can I use a different crypto wallet to fund my account?",
+      answer: "Yes! LumenFX supports all major Stellar-compatible wallets. Simply connect your wallet and you're ready to start making optimized cross-border payments."
+    },
+    {
+      question: "Do I receive my funds in the exact currency I requested?",
+      answer: "Absolutely. Our platform automatically finds the best conversion route to ensure you receive the exact currency you need at the optimal exchange rate, with full transparency on all fees."
+    },
+    {
+      question: "Who's working on making more crypto wallets work — any hope?",
+      answer: "We're constantly expanding wallet support. Our team is actively integrating with new providers and blockchain networks to give you more options for seamless payments."
+    },
+    {
+      question: "What is Stellar and how does it work?",
+      answer: "Stellar is a decentralized blockchain platform that enables fast, low-cost cross-border payments. LumenFX leverages Stellar's native path payment features to execute intelligent routing and provide advanced payment optimization."
+    },
+    {
+      question: "Can I withdraw my funds at any time?",
+      answer: "Yes, you have complete control over your funds. Withdraw anytime to your preferred wallet or bank account with transparent fees shown upfront."
+    },
+    {
+      question: "How secure are my funds and personal information?",
+      answer: "We use enterprise-grade encryption and never store your private keys. All transactions are secured by the Stellar blockchain's proven security infrastructure."
+    },
+    {
+      question: "What types of currencies can I exchange through LumenFX?",
+      answer: "LumenFX supports all major fiat currencies and Stellar-based assets, giving you flexibility in your cross-border payment options."
+    },
+    {
+      question: "What happens if I need help with my account?",
+      answer: "Our support team is available 24/7 via chat, email, or phone. We also provide comprehensive documentation and guides to help you get the most from the platform."
+    }
+  ];
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'Transactions':
-        return <Transactions />;
-      case 'Settings':
-        return <Settings onTabChange={setActiveTab} />;
-      case 'Dashboard':
-      default:
-        return (
-          <main className="h-full px-4 md:px-6 lg:px-8 py-4 md:py-6 lg:py-4 overflow-auto lg:overflow-hidden">
-            <div className="max-w-[1400px] mx-auto h-full">
-              {/* Mobile Layout: Hero Text (small) -> Chart -> Wallet -> Savings */}
-              <div className="flex flex-col md:hidden space-y-4">
-                {/* Section Title - Mobile */}
-                <div>
-                  <h2 className="text-2xl font-bold text-black">Wallet & Savings</h2>
-                </div>
+  return (
+    <div className="min-h-screen bg-white">
+      {/* Navigation */}
+      <nav className="px-4 sm:px-6 lg:px-8 py-3 sm:py-4 border-b border-gray-200 sticky top-0 bg-white z-50">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center space-x-4 lg:space-x-8">
+            <Link href="/" className="text-xl sm:text-2xl font-bold text-black">
+              LumenFX
+            </Link>
+            <div className="hidden md:flex items-center space-x-4 lg:space-x-6">
+              <a href="#start" className="text-sm text-gray-700 hover:text-black transition-colors">Start</a>
+              <a href="#how-it-works" className="text-sm text-gray-700 hover:text-black transition-colors">How It Works</a>
+              <a href="#faq" className="text-sm text-gray-700 hover:text-black transition-colors">FAQ</a>
+              <a href="#blog" className="text-sm text-gray-700 hover:text-black transition-colors">Blog</a>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            <Link href="/dashboard" className="hidden sm:block text-sm text-gray-700 hover:text-black transition-colors">
+              Create Account
+            </Link>
+            <Link href="/dashboard" className="bg-black text-white px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium hover:bg-gray-800 transition-colors">
+              Log In
+            </Link>
+            <button 
+              className="md:hidden p-2 text-gray-700"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {mobileMenuOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
+          </div>
+        </div>
 
-                {/* Hero Text - Mobile (Small Size, Top) */}
-                <div className="space-y-2">
-                  <h3 className="text-xl font-medium text-black leading-tight">
-                    Great! <span className="text-blue-600">Savings increased by 13,8%</span> in the past 30 days.
-                  </h3>
-                  <p className="text-gray-600 text-sm">
-                    Top up your Wallet and start growing your Savings automatically.
-                  </p>
-                  <button className="w-full bg-black text-white px-4 py-2.5 text-sm font-medium hover:bg-gray-800 transition-colors duration-200 flex items-center justify-center space-x-2">
-                    <span>Add Funds to Wallet</span>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                </div>
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden mt-4 pb-4 border-t border-gray-200 pt-4">
+            <div className="flex flex-col space-y-3">
+              <a href="#start" className="text-sm text-gray-700 hover:text-black" onClick={() => setMobileMenuOpen(false)}>Start</a>
+              <a href="#how-it-works" className="text-sm text-gray-700 hover:text-black" onClick={() => setMobileMenuOpen(false)}>How It Works</a>
+              <a href="#faq" className="text-sm text-gray-700 hover:text-black" onClick={() => setMobileMenuOpen(false)}>FAQ</a>
+              <a href="#blog" className="text-sm text-gray-700 hover:text-black" onClick={() => setMobileMenuOpen(false)}>Blog</a>
+              <Link href="/dashboard" className="text-sm text-gray-700 hover:text-black sm:hidden" onClick={() => setMobileMenuOpen(false)}>
+                Create Account
+              </Link>
+            </div>
+          </div>
+        )}
+      </nav>
 
-                {/* Chart - Mobile */}
-                <div className="bg-white shadow-sm border border-gray-100 p-4">
-                  <div className="flex flex-col space-y-2 mb-3">
-                    <h3 className="text-base font-semibold text-gray-900">Savings projection</h3>
-                    <p className="text-gray-500 text-xs">Projection based on average historical growth in FxShopping.</p>
-                    <div className="flex space-x-2">
-                      <select className="px-2 py-1 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option>This year</option>
-                        <option>Last year</option>
-                      </select>
-                      <select className="px-2 py-1 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option>USDC</option>
-                        <option>USD</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="h-32 flex items-end justify-between space-x-1">
-                    {savingsData.map((item) => (
-                      <div key={item.month} className="flex flex-col items-center flex-1">
-                        <div className="text-[9px] font-medium text-gray-600 mb-1">{item.amount}k</div>
-                        <div
-                          className="bg-gradient-to-t from-purple-400 to-purple-300 w-full"
-                          style={{ height: `${(item.amount / maxAmount) * 100}px` }}
-                        ></div>
-                        <div className="text-[9px] text-gray-500 mt-1">{item.month}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Wallet Card - Mobile */}
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 border border-blue-200">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-base font-semibold text-gray-900">Wallet</h3>
-                    <div className="w-8 h-8 bg-blue-200 flex items-center justify-center">
-                      <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="mb-3">
-                    <div className="text-xs text-gray-600 mb-1">Balance</div>
-                    <div className="text-2xl font-bold text-gray-900">12,981</div>
-                    <div className="text-xs text-gray-600">USDC</div>
-                  </div>
-                  <div className="mb-3">
-                    <p className="text-xs text-gray-600">
-                      Your average deposit amount is <span className="bg-blue-200 text-blue-800 px-2 py-0.5 rounded text-xs font-medium">1,200 USDC</span>
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <button className="w-full bg-black text-white py-2 text-sm font-medium hover:bg-gray-800 transition-colors duration-200 flex items-center justify-center space-x-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
-                      <span>Deposit Funds</span>
-                    </button>
-                    <button className="w-full border border-gray-300 text-gray-700 py-2 text-sm font-medium hover:bg-gray-50 transition-colors duration-200 flex items-center justify-center space-x-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                      <span>Payout</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Savings Card - Mobile */}
-                <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 border border-green-200">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-base font-semibold text-gray-900">Savings</h3>
-                    <div className="w-8 h-8 bg-green-200 flex items-center justify-center">
-                      <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="mb-3">
-                    <div className="text-xs text-gray-600 mb-1">Aave</div>
-                    <div className="text-2xl font-bold text-gray-900">149,576</div>
-                    <div className="text-xs text-gray-600">USDC</div>
-                  </div>
-                  <div className="mb-3">
-                    <p className="text-xs text-gray-600">
-                      Your average savings growth is <span className="bg-green-200 text-green-800 px-2 py-0.5 rounded text-xs font-medium">138.60 USDC</span>
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <button className="w-full bg-black text-white py-2 text-sm font-medium hover:bg-gray-800 transition-colors duration-200 flex items-center justify-center space-x-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                      <span>Add Funds from Wallet</span>
-                    </button>
-                    <button className="w-full border border-gray-300 text-gray-700 py-2 text-sm font-medium hover:bg-gray-50 transition-colors duration-200 flex items-center justify-center space-x-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
-                      <span>Withdraw</span>
-                    </button>
-                  </div>
-                </div>
+      {/* Hero Section */}
+      <section id="start" className="px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-24">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            {/* Left Content */}
+            <div className="space-y-4 sm:space-y-6 order-2 lg:order-1">
+              <div className="space-y-3 sm:space-y-4">
+                <h2 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-black leading-tight">
+                  Optimize your money.
+                </h2>
+                <h3 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold leading-tight">
+                  <span className="text-black">No </span>
+                  <span className="text-blue-600">hidden fees</span>
+                  <span className="text-black">, no guesswork.</span>
+                </h3>
               </div>
-
-              {/* Tablet Layout: 768px+ (md breakpoint) */}
-              <div className="hidden md:flex lg:hidden flex-col space-y-6">
-                {/* Top Row: Title and Chart */}
-                <div className="grid grid-cols-12 gap-4">
-                  <div className="col-span-5">
-                    <h2 className="text-3xl font-bold text-black">Wallet & Savings</h2>
-                  </div>
-                  <div className="col-span-7 bg-white shadow-sm border border-gray-100 p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <h3 className="text-base font-semibold text-gray-900">Savings projection</h3>
-                        <p className="text-gray-500 text-xs">Projection based on average historical growth in FxShopping.</p>
-                      </div>
-                      <div className="flex space-x-2">
-                        <select className="px-2 py-1 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
-                          <option>This year</option>
-                          <option>Last year</option>
-                        </select>
-                        <select className="px-2 py-1 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
-                          <option>USDC</option>
-                          <option>USD</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div className="h-40 flex items-end justify-between space-x-1">
-                      {savingsData.map((item) => (
-                        <div key={item.month} className="flex flex-col items-center flex-1">
-                          <div className="text-[9px] font-medium text-gray-600 mb-1">{item.amount}k</div>
-                          <div
-                            className="bg-gradient-to-t from-purple-400 to-purple-300 w-full"
-                            style={{ height: `${(item.amount / maxAmount) * 120}px` }}
-                          ></div>
-                          <div className="text-[9px] text-gray-500 mt-1">{item.month}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bottom Row: Hero Text and Cards */}
-                <div className="grid grid-cols-12 gap-4">
-                  <div className="col-span-12 space-y-3">
-                    <h3 className="text-2xl md:text-3xl font-medium text-black leading-tight">
-                      Great! <span className="text-blue-600">Savings increased by 13,8%</span> in the past 30 days.
-                    </h3>
-                    <p className="text-gray-600 text-sm">
-                      Top up your Wallet and start growing your Savings automatically.
-                    </p>
-                    <button className="w-max bg-black text-white px-5 py-2.5 text-sm font-medium hover:bg-gray-800 transition-colors duration-200 flex items-center space-x-2">
-                      <span>Add Funds to Wallet</span>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Cards Row */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 border border-blue-200">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-base font-semibold text-gray-900">Wallet</h3>
-                      <div className="w-9 h-9 bg-blue-200 flex items-center justify-center">
-                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                        </svg>
-                      </div>
-                    </div>
-                    <div className="mb-3">
-                      <div className="text-xs text-gray-600 mb-1">Balance</div>
-                      <div className="text-2xl font-bold text-gray-900">12,981</div>
-                      <div className="text-xs text-gray-600">USDC</div>
-                    </div>
-                    <div className="mb-3">
-                      <p className="text-xs text-gray-600">
-                        Your average deposit amount is <span className="bg-blue-200 text-blue-800 px-2 py-0.5 rounded text-xs font-medium">1,200 USDC</span>
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <button className="w-full bg-black text-white py-2 text-sm font-medium hover:bg-gray-800 transition-colors duration-200 flex items-center justify-center space-x-2">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                        <span>Deposit Funds</span>
-                      </button>
-                      <button className="w-full border border-gray-300 text-gray-700 py-2 text-sm font-medium hover:bg-gray-50 transition-colors duration-200 flex items-center justify-center space-x-2">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                        <span>Payout</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 border border-green-200">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-base font-semibold text-gray-900">Savings</h3>
-                      <div className="w-9 h-9 bg-green-200 flex items-center justify-center">
-                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                        </svg>
-                      </div>
-                    </div>
-                    <div className="mb-3">
-                      <div className="text-xs text-gray-600 mb-1">Aave</div>
-                      <div className="text-2xl font-bold text-gray-900">149,576</div>
-                      <div className="text-xs text-gray-600">USDC</div>
-                    </div>
-                    <div className="mb-3">
-                      <p className="text-xs text-gray-600">
-                        Your average savings growth is <span className="bg-green-200 text-green-800 px-2 py-0.5 rounded text-xs font-medium">138.60 USDC</span>
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <button className="w-full bg-black text-white py-2 text-sm font-medium hover:bg-gray-800 transition-colors duration-200 flex items-center justify-center space-x-2">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                        <span>Add Funds from Wallet</span>
-                      </button>
-                      <button className="w-full border border-gray-300 text-gray-700 py-2 text-sm font-medium hover:bg-gray-50 transition-colors duration-200 flex items-center justify-center space-x-2">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                        <span>Withdraw</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
+              <p className="text-gray-600 text-base sm:text-lg lg:text-xl max-w-xl">
+                With LumenFX, transferring is an art stress-free. Start in minutes—no paperwork required.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                <Link href="/dashboard" className="bg-blue-600 text-white px-6 py-3 font-medium hover:bg-blue-700 transition-colors text-sm sm:text-base text-center">
+                  Get started
+                </Link>
+                <a href="#how-it-works" className="border-2 border-gray-900 text-black px-6 py-3 font-medium hover:bg-gray-900 hover:text-white transition-all text-sm sm:text-base text-center">
+                  See How It Works
+                </a>
               </div>
+            </div>
 
-              {/* Desktop Layout: 1024px+ (lg breakpoint) - Scaled to fit viewport */}
-              <div className="hidden lg:grid h-full grid-cols-12 grid-rows-[auto,1fr] gap-3 xl:gap-4">
-                {/* Section Title top-left */}
-                <div className="col-span-12 lg:col-span-5 xl:col-span-5 order-1">
-                  <h2 className="text-2xl xl:text-3xl 2xl:text-4xl font-bold text-black">Wallet & Savings</h2>
+            {/* Right Dashboard Preview */}
+            <div className="relative order-1 lg:order-2">
+              <div className="bg-white border-2 border-gray-200 rounded-lg shadow-xl p-4 sm:p-6">
+                {/* Mock Dashboard Header */}
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
+                  <h3 className="text-base sm:text-lg font-semibold text-black">LumenFX</h3>
+                  <div className="hidden sm:flex items-center space-x-2 text-xs">
+                    <span className="text-gray-600">Dashboard</span>
+                    <span className="text-blue-600 font-medium">Transactions</span>
+                    <span className="text-gray-600">Settings</span>
+                  </div>
                 </div>
 
-                {/* Savings chart top-right */}
-                <div className="col-span-12 lg:col-start-7 lg:col-span-6 xl:col-start-8 xl:col-span-5 row-start-1 order-2 bg-white shadow-sm border border-gray-100 p-3 xl:p-4 2xl:p-5">
-                  <div className="flex items-center justify-between mb-3">
+                {/* Mock Account Info */}
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                  <div className="flex items-center justify-between mb-3 sm:mb-4">
                     <div>
-                      <h3 className="text-sm xl:text-base 2xl:text-lg font-semibold text-gray-900">Savings projection</h3>
-                      <p className="text-gray-500 text-[10px] xl:text-xs">Projection based on average historical growth in FxShopping.</p>
+                      <p className="text-[10px] sm:text-xs text-gray-600 mb-1">WALLET USD</p>
+                      <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-black">12,981</p>
                     </div>
-                    <div className="flex space-x-2">
-                      <select className="px-2 py-1 text-black border border-gray-200 rounded-lg text-[10px] xl:text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option>This year</option>
-                        <option>Last year</option>
-                      </select>
-                      <select className="px-2 py-1 text-black border border-gray-200 rounded-lg text-[10px] xl:text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option>USDC</option>
-                        <option>USD</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="h-32 xl:h-40 2xl:h-52 flex items-end justify-between space-x-1">
-                    {savingsData.map((item) => (
-                      <div key={item.month} className="flex flex-col items-center flex-1">
-                        <div className="text-[9px] xl:text-[10px] font-medium text-gray-600 mb-1">{item.amount}k</div>
-                        <div
-                          className="bg-gradient-to-t from-purple-400 to-purple-300 w-full"
-                          style={{ height: `${(item.amount / maxAmount) * 110}px` }}
-                        ></div>
-                        <div className="text-[9px] xl:text-[10px] text-gray-500 mt-1">{item.month}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Bottom-left hero text */}
-                <div className="col-span-12 lg:col-span-5 xl:col-span-5 row-start-2 order-1 lg:order-none flex flex-col justify-end pb-2">
-                  <div className="space-y-2 xl:space-y-3">
-                    <h3 className="text-xl xl:text-2xl 2xl:text-4xl 3xl:text-5xl font-medium text-black leading-[1.05]">
-                      Great! <span className="text-blue-600">Savings increased by 13,8%</span> in the
-                      <br /> past 30 days.
-                    </h3>
-                    <p className="text-gray-600 text-xs xl:text-sm 2xl:text-base">
-                      Top up your Wallet and start growing your Savings automatically.
-                    </p>
-                    <button className="w-max bg-black text-white px-4 xl:px-5 2xl:px-6 py-2 xl:py-2.5 2xl:py-3 text-xs xl:text-sm 2xl:text-base font-medium hover:bg-gray-800 transition-colors duration-200 flex items-center space-x-2">
-                      <span>Add Funds to Wallet</span>
-                      <svg className="w-3 xl:w-4 2xl:w-5 h-3 xl:h-4 2xl:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    <div className="flex items-center space-x-1 sm:space-x-2 text-green-600 text-xs sm:text-sm font-medium">
+                      <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clipRule="evenodd" />
                       </svg>
-                    </button>
+                      <span>13.8%</span>
+                    </div>
                   </div>
+                  <p className="text-xs sm:text-sm text-gray-600">Best rate found via Stellar</p>
                 </div>
 
-                {/* Bottom-right cards next to the text */}
-                <div className="col-span-12 lg:col-start-7 lg:col-span-6 xl:col-start-7 xl:col-span-6 row-start-2 order-3 grid grid-cols-1 md:grid-cols-2 gap-3 xl:gap-4 content-end pb-2">
-                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-3 xl:p-4 2xl:p-5 border border-blue-200">
-                    <div className="flex items-center justify-between mb-2 xl:mb-3">
-                      <h3 className="text-sm xl:text-base 2xl:text-lg font-semibold text-gray-900">Wallet</h3>
-                      <div className="w-8 xl:w-9 2xl:w-10 h-8 xl:h-9 2xl:h-10 bg-blue-200 flex items-center justify-center">
-                        <svg className="w-4 xl:w-4 2xl:w-5 h-4 xl:h-4 2xl:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                        </svg>
-                      </div>
-                    </div>
-                    <div className="mb-2 xl:mb-3">
-                      <div className="text-[10px] xl:text-xs text-gray-600 mb-1">Balance</div>
-                      <div className="text-xl xl:text-2xl 2xl:text-3xl font-bold text-gray-900">12,981</div>
-                      <div className="text-[10px] xl:text-xs text-gray-600">USDC</div>
-                    </div>
-                    <div className="mb-2 xl:mb-3">
-                      <p className="text-[10px] xl:text-xs 2xl:text-sm text-gray-600">
-                        Your average deposit amount is <span className="bg-blue-200 text-blue-800 px-1.5 py-0.5 rounded text-[10px] xl:text-xs font-medium">1,200 USDC</span>
-                      </p>
-                    </div>
-                    <div className="space-y-1.5 xl:space-y-2">
-                      <button className="w-full bg-black text-white py-1.5 xl:py-2 2xl:py-2.5 text-xs xl:text-sm font-medium hover:bg-gray-800 transition-colors duration-200 flex items-center justify-center space-x-2">
-                        <svg className="w-3 xl:w-4 2xl:w-5 h-3 xl:h-4 2xl:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                        <span>Deposit Funds</span>
-                      </button>
-                      <button className="w-full border border-gray-300 text-gray-700 py-1.5 xl:py-2 2xl:py-2.5 text-xs xl:text-sm font-medium hover:bg-gray-50 transition-colors duration-200 flex items-center justify-center space-x-2">
-                        <svg className="w-3 xl:w-4 2xl:w-5 h-3 xl:h-4 2xl:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                        <span>Payout</span>
-                      </button>
-                    </div>
+                {/* Mock Savings Info */}
+                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 sm:p-6">
+                  <div className="mb-3 sm:mb-4">
+                    <p className="text-[10px] sm:text-xs text-gray-600 mb-1">SAVINGS USDC</p>
+                    <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-black">149,576</p>
                   </div>
+                  <p className="text-xs sm:text-sm text-gray-600">Optimized routing savings</p>
+                </div>
+              </div>
 
-                  <div className="bg-gradient-to-br from-green-50 to-green-100 p-3 xl:p-4 2xl:p-5 border border-green-200">
-                    <div className="flex items-center justify-between mb-2 xl:mb-3">
-                      <h3 className="text-sm xl:text-base 2xl:text-lg font-semibold text-gray-900">Savings</h3>
-                      <div className="w-8 xl:w-9 2xl:w-10 h-8 xl:h-9 2xl:h-10 bg-green-200 flex items-center justify-center">
-                        <svg className="w-4 xl:w-4 2xl:w-5 h-4 xl:h-4 2xl:h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                        </svg>
-                      </div>
-                    </div>
-                    <div className="mb-2 xl:mb-3">
-                      <div className="text-[10px] xl:text-xs text-gray-600 mb-1">Aave</div>
-                      <div className="text-xl xl:text-2xl 2xl:text-3xl font-bold text-gray-900">149,576</div>
-                      <div className="text-[10px] xl:text-xs text-gray-600">USDC</div>
-                    </div>
-                    <div className="mb-2 xl:mb-3">
-                      <p className="text-[10px] xl:text-xs 2xl:text-sm text-gray-600">
-                        Your average savings growth is <span className="bg-green-200 text-green-800 px-1.5 py-0.5 rounded text-[10px] xl:text-xs font-medium">138.60 USDC</span>
-                      </p>
-                    </div>
-                    <div className="space-y-1.5 xl:space-y-2">
-                      <button className="w-full bg-black text-white py-1.5 xl:py-2 2xl:py-2.5 text-xs xl:text-sm font-medium hover:bg-gray-800 transition-colors duration-200 flex items-center justify-center space-x-2">
-                        <svg className="w-3 xl:w-4 2xl:w-5 h-3 xl:h-4 2xl:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                        <span>Add Funds from Wallet</span>
-                      </button>
-                      <button className="w-full border border-gray-300 text-gray-700 py-1.5 xl:py-2 2xl:py-2.5 text-xs xl:text-sm font-medium hover:bg-gray-50 transition-colors duration-200 flex items-center justify-center space-x-2">
-                        <svg className="w-3 xl:w-4 2xl:w-5 h-3 xl:h-4 2xl:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                        <span>Withdraw</span>
-                      </button>
-                    </div>
+              {/* Floating Badge */}
+              <div className="absolute -right-2 sm:-right-4 -top-2 sm:-top-4 bg-blue-600 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium shadow-lg">
+                Live Rates
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section id="how-it-works" className="bg-gray-50 px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-24">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-black mb-3 sm:mb-4">
+              <span className="text-blue-600">Start transferring</span>
+            </h2>
+            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-black mb-4 sm:mb-6">
+              in just three simple steps
+            </h3>
+            <p className="text-gray-600 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto px-4">
+              Just select Stellar-integrated wallets and accounts—we find the best rate, and execute like magic—plus, get a neat visual of your money zips around the world.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            {/* Step 1 */}
+            <div className="bg-blue-50 p-6 sm:p-8 rounded-lg">
+              <div className="inline-block bg-blue-600 text-white px-3 py-1 rounded text-xs sm:text-sm font-medium mb-4 sm:mb-6">
+                STEP 1 OF 3
+              </div>
+              <h4 className="text-xl sm:text-2xl font-bold text-black mb-3 sm:mb-4">
+                Connect your wallet
+              </h4>
+              <p className="text-gray-600 text-sm sm:text-base mb-4 sm:mb-6">
+                Link your Stellar wallet or create a new one. We support all major Stellar-compatible wallets for seamless integration.
+              </p>
+              <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
+                  <span className="text-xs sm:text-sm font-medium text-black">Wallet</span>
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 bg-blue-200 rounded-full flex items-center justify-center">
+                    <svg className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
                   </div>
+                </div>
+                <p className="text-2xl sm:text-3xl font-bold text-black mb-1">12,981</p>
+                <p className="text-[10px] sm:text-xs text-gray-600 mb-3 sm:mb-4">USDC</p>
+                <Link href="/dashboard" className="block w-full bg-black text-white py-2 text-xs sm:text-sm font-medium hover:bg-gray-800 transition-colors text-center">
+                  Connect Wallet
+                </Link>
+              </div>
+            </div>
+
+            {/* Step 2 */}
+            <div className="bg-green-50 p-6 sm:p-8 rounded-lg">
+              <div className="inline-block bg-green-600 text-white px-3 py-1 rounded text-xs sm:text-sm font-medium mb-4 sm:mb-6">
+                STEP 2 OF 3
+              </div>
+              <h4 className="text-xl sm:text-2xl font-bold text-black mb-3 sm:mb-4">
+                Choose best route
+              </h4>
+              <p className="text-gray-600 text-sm sm:text-base mb-4 sm:mb-6">
+                Our AI analyzes Stellar paths and off-chain providers in real-time to find the optimal conversion route with lowest fees.
+              </p>
+              <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
+                  <span className="text-xs sm:text-sm font-medium text-black">Routing</span>
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 bg-green-200 rounded-full flex items-center justify-center">
+                    <svg className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="space-y-2 mb-3 sm:mb-4">
+                  <div className="flex items-center justify-between text-xs sm:text-sm">
+                    <span className="text-gray-600">Stellar Path</span>
+                    <span className="font-medium text-green-600">Best Rate</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs sm:text-sm">
+                    <span className="text-gray-600">Provider A</span>
+                    <span className="text-gray-900">0.5% fee</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs sm:text-sm">
+                    <span className="text-gray-600">Provider B</span>
+                    <span className="text-gray-900">0.8% fee</span>
+                  </div>
+                </div>
+                <button className="w-full bg-black text-white py-2 text-xs sm:text-sm font-medium hover:bg-gray-800 transition-colors">
+                  Select Route
+                </button>
+              </div>
+            </div>
+
+            {/* Step 3 */}
+            <div className="bg-purple-50 p-6 sm:p-8 rounded-lg md:col-span-2 lg:col-span-1">
+              <div className="inline-block bg-purple-600 text-white px-3 py-1 rounded text-xs sm:text-sm font-medium mb-4 sm:mb-6">
+                STEP 3 OF 3
+              </div>
+              <h4 className="text-xl sm:text-2xl font-bold text-black mb-3 sm:mb-4">
+                Track and receive
+              </h4>
+              <p className="text-gray-600 text-sm sm:text-base mb-4 sm:mb-6">
+                Watch your transfer in real-time with complete transparency. Full visibility into every fee and exchange rate applied.
+              </p>
+              <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
+                  <span className="text-xs sm:text-sm font-medium text-black">Transfer Status</span>
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 bg-purple-200 rounded-full flex items-center justify-center">
+                    <svg className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="mb-3 sm:mb-4">
+                  <div className="flex items-center justify-between mb-2 text-xs sm:text-sm">
+                    <span className="text-gray-600">Sending</span>
+                    <span className="text-gray-900">1,000 USD</span>
+                  </div>
+                  <div className="flex items-center justify-between mb-2 text-xs sm:text-sm">
+                    <span className="text-gray-600">Fees</span>
+                    <span className="text-gray-900">5.00 USD</span>
+                  </div>
+                  <div className="flex items-center justify-between font-medium text-xs sm:text-sm">
+                    <span className="text-black">Recipient gets</span>
+                    <span className="text-green-600">995 USD</span>
+                  </div>
+                </div>
+                <div className="w-full bg-green-100 rounded-full h-2 mb-2">
+                  <div className="bg-green-600 h-2 rounded-full" style={{ width: '100%' }}></div>
+                </div>
+                <p className="text-xs text-center text-green-600 font-medium">Transfer Complete</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section id="faq" className="px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-24">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
+            {/* Left Content */}
+            <div className="space-y-4 sm:space-y-6">
+              <div>
+                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-black mb-3 sm:mb-4">
+                  Got questions?
+                </h2>
+                <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-black mb-4 sm:mb-6">
+                  We've got answers.
+                </h3>
+                <p className="text-gray-600 text-sm sm:text-base lg:text-lg">
+                  If you can't find what you're looking for, feel free to reach out to us directly through our 24/7 customer support.
+                </p>
+              </div>
+
+              <div className="space-y-3 sm:space-y-4">
+                <p className="text-xs sm:text-sm text-gray-600">
+                  Can't find your answer from our FAQ?
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Link href="/dashboard" className="bg-blue-600 text-white px-6 py-3 font-medium hover:bg-blue-700 transition-colors text-xs sm:text-sm text-center">
+                    Get in touch
+                  </Link>
+                  <button className="border-2 border-gray-300 text-black px-6 py-3 font-medium hover:bg-gray-50 transition-colors text-xs sm:text-sm">
+                    Extended FAQ Section
+                  </button>
                 </div>
               </div>
             </div>
-          </main>
-        );
-    }
-  };
 
-  if (!isAuthenticated) {
-    return <Login onLogin={handleLogin} />;
-  }
+            {/* Right FAQ List */}
+            <div className="space-y-2 sm:space-y-3">
+              {faqs.map((faq, index) => (
+                <div key={index} className="border border-gray-200 rounded-lg">
+                  <button
+                    onClick={() => toggleFaq(index)}
+                    className="w-full flex items-center justify-between p-4 sm:p-5 text-left hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="font-medium text-black pr-4 text-sm sm:text-base">{faq.question}</span>
+                    <svg
+                      className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-500 flex-shrink-0 transition-transform ${
+                        openFaq === index ? 'rotate-180' : ''
+                      }`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {openFaq === index && (
+                    <div className="px-4 sm:px-5 pb-4 sm:pb-5">
+                      <p className="text-gray-600 text-xs sm:text-sm">{faq.answer}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
 
-  return (
-    <div className="h-screen overflow-hidden bg-white flex flex-col">
-      <Navbar activeTab={activeTab} onTabChange={setActiveTab} onLogout={handleLogout} />
-      <div className="flex-1 overflow-hidden">{renderContent()}</div>
+      {/* CTA Section */}
+      <section className="bg-gradient-to-br from-blue-50 to-purple-50 px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-24">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-black mb-4 sm:mb-6">
+            <span className="text-blue-600">Transferring</span> that makes sense.
+          </h2>
+          <p className="text-gray-600 text-sm sm:text-base lg:text-lg mb-6 sm:mb-8 max-w-2xl mx-auto px-4">
+            Join thousands who trust LumenFX for transparent, optimized cross-border payments powered by Stellar blockchain.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4">
+            <Link href="/dashboard" className="bg-blue-600 text-white px-6 sm:px-8 py-3 font-medium hover:bg-blue-700 transition-colors text-sm sm:text-base text-center">
+              Get Started
+            </Link>
+            <Link href="/dashboard" className="border-2 border-gray-900 text-black px-6 sm:px-8 py-3 font-medium hover:bg-gray-900 hover:text-white transition-all text-sm sm:text-base text-center">
+              Try Demo
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-50 px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-6 sm:mb-8">
+            <div>
+              <h3 className="font-bold text-black mb-3 sm:mb-4 text-sm sm:text-base">LumenFX</h3>
+              <div className="space-y-2">
+                <a href="#start" className="block text-xs sm:text-sm text-gray-600 hover:text-black transition-colors">Start</a>
+                <a href="#how-it-works" className="block text-xs sm:text-sm text-gray-600 hover:text-black transition-colors">How It Works</a>
+                <a href="#faq" className="block text-xs sm:text-sm text-gray-600 hover:text-black transition-colors">FAQ</a>
+                <a href="#blog" className="block text-xs sm:text-sm text-gray-600 hover:text-black transition-colors">Blog</a>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold text-black mb-3 sm:mb-4 text-xs sm:text-sm">Company</h4>
+              <div className="space-y-2">
+                <a href="#" className="block text-xs sm:text-sm text-gray-600 hover:text-black transition-colors">About</a>
+                <a href="#" className="block text-xs sm:text-sm text-gray-600 hover:text-black transition-colors">Careers</a>
+                <a href="#" className="block text-xs sm:text-sm text-gray-600 hover:text-black transition-colors">Press</a>
+                <a href="#" className="block text-xs sm:text-sm text-gray-600 hover:text-black transition-colors">Contact</a>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold text-black mb-3 sm:mb-4 text-xs sm:text-sm">Legal</h4>
+              <div className="space-y-2">
+                <a href="#" className="block text-xs sm:text-sm text-gray-600 hover:text-black transition-colors">Privacy</a>
+                <a href="#" className="block text-xs sm:text-sm text-gray-600 hover:text-black transition-colors">Terms</a>
+                <a href="#" className="block text-xs sm:text-sm text-gray-600 hover:text-black transition-colors">Security</a>
+                <a href="#" className="block text-xs sm:text-sm text-gray-600 hover:text-black transition-colors">Compliance</a>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold text-black mb-3 sm:mb-4 text-xs sm:text-sm">Connect</h4>
+              <div className="flex space-x-4">
+                <a href="#" className="text-gray-600 hover:text-black transition-colors">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
+                  </svg>
+                </a>
+                <a href="#" className="text-gray-600 hover:text-black transition-colors">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.840 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.430.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+          <div className="border-t border-gray-200 pt-6 sm:pt-8 text-center text-xs sm:text-sm text-gray-600">
+            <p>Copyright © 2025 @ LumenFX. All rights reserved.</p>
+            <p className="mt-2">Designed & Developed by <a href="#" className="text-blue-600 hover:underline">Stellar & Mateusz Madura</a></p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

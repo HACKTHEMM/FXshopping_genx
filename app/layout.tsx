@@ -23,8 +23,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "FxShopping - Shopping Dashboard",
-  description: "Modern shopping dashboard with wallet management and spending insights",
+  title: "LumenFX - Payments Simplified",
+  description: "Modern payments dashboard with wallet management and spending insights",
 };
 
 export default function RootLayout({
