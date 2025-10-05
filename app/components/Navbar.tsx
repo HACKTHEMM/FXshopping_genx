@@ -45,10 +45,14 @@ export default function Navbar({ activeTab, onTabChange, onLogout }: NavbarProps
             ))}
           </nav>
           
-          {/* Ethereum Badge - Hidden on mobile and tablet */}
+          {/* Stellar Badge - Hidden on mobile and tablet */}
           <div className="hidden lg:flex items-center space-x-2 px-3 py-1 border border-gray-200 rounded-lg">
-            <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
-            <span className="text-sm text-gray-700">Ethereum</span>
+            <img
+              src="/stellar-xlm-logo.png"
+              alt="Stellar Logo"
+              className="w-4 h-4 object-contain"
+            />
+            <span className="text-sm text-gray-700">Stellar</span>
           </div>
         </div>
 
@@ -118,10 +122,14 @@ export default function Navbar({ activeTab, onTabChange, onLogout }: NavbarProps
             </button>
           ))}
 
-          {/* Mobile Ethereum Badge */}
+          {/* Mobile Stellar Badge */}
           <div className="flex items-center space-x-2 px-3 py-2.5 mt-2">
-            <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
-            <span className="text-sm text-gray-700">Ethereum</span>
+            <img
+              src="/stellar-xlm-logo.png"
+              alt="Stellar Logo"
+              className="w-4 h-4 object-contain"
+            />
+            <span className="text-sm text-gray-700">Stellar</span>
           </div>
 
           {/* Mobile Wallet Address */}
