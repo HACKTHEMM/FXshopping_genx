@@ -1,103 +1,177 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+import { useState } from 'react';
+import Navbar from './components/Navbar';
+import Transactions from './components/Transactions';
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+const savingsData = [
+  { month: 'Jan', amount: 50 },
+  { month: 'Feb', amount: 67 },
+  { month: 'Mar', amount: 109 },
+  { month: 'Apr', amount: 149 },
+  { month: 'May', amount: 152 },
+  { month: 'Jun', amount: 156 },
+  { month: 'Jul', amount: 164 },
+  { month: 'Aug', amount: 201 },
+  { month: 'Sep', amount: 212 },
+  { month: 'Oct', amount: 238 },
+  { month: 'Nov', amount: 241 },
+  { month: 'Dec', amount: 263 },
+];
+
+export default function Dashboard() {
+  const [activeTab, setActiveTab] = useState('Dashboard');
+  const maxAmount = Math.max(...savingsData.map(d => d.amount));
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'Transactions':
+        return <Transactions />;
+      case 'Dashboard':
+      default:
+        return (
+          <main className="px-8 py-8">
+        <div className="mb-8">
+          <h2 className="text-4xl font-bold text-black">Wallet & Savings</h2>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <h3 className="text-3xl font-semibold text-black leading-tight">
+                Great! <span className="text-blue-600">Savings increased by 13,8%</span> in the past 30 days.
+              </h3>
+              <p className="text-gray-600 text-lg">
+                Top up your Wallet and start growing your Savings automatically.
+              </p>
+              <button className="bg-black text-white px-6 py-3 rounded-xl font-medium hover:bg-gray-800 transition-colors duration-200 flex items-center space-x-2">
+                <span>Add Funds to Wallet</span>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900">Savings projection</h3>
+                <p className="text-gray-500 text-sm">Projection based on average historical growth in FxShopping.</p>
+              </div>
+              <div className="flex space-x-3">
+                <select className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option>This year</option>
+                  <option>Last year</option>
+                </select>
+                <select className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option>USDC</option>
+                  <option>USD</option>
+                </select>
+              </div>
+            </div>
+            
+            <div className="h-64 flex items-end justify-between space-x-1">
+              {savingsData.map((item) => (
+                <div key={item.month} className="flex flex-col items-center flex-1">
+                  <div className="text-xs font-medium text-gray-600 mb-2">{item.amount}k</div>
+                  <div
+                    className="bg-gradient-to-t from-purple-400 to-purple-300 rounded-t-lg w-full transition-all duration-300 hover:from-purple-500 hover:to-purple-400"
+                    style={{ height: `${(item.amount / maxAmount) * 200}px` }}
+                  ></div>
+                  <div className="text-xs text-gray-500 mt-2">{item.month}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 border border-blue-200">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">Wallet</h3>
+              <div className="w-12 h-12 bg-blue-200 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <div className="text-sm text-gray-600 mb-1">Balance</div>
+              <div className="text-4xl font-bold text-gray-900">12,981</div>
+              <div className="text-sm text-gray-600">USDC</div>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-sm text-gray-600">
+                Your average deposit amount is <span className="bg-blue-200 text-blue-800 px-2 py-1 rounded text-sm font-medium">1,200 USDC</span>
+              </p>
+            </div>
+            
+            <div className="space-y-3">
+              <button className="w-full bg-black text-white py-3 rounded-xl font-medium hover:bg-gray-800 transition-colors duration-200 flex items-center justify-center space-x-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                <span>Deposit Funds</span>
+              </button>
+              <button className="w-full border border-gray-300 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-50 transition-colors duration-200 flex items-center justify-center space-x-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <span>Payout</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-6 border border-green-200">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">Savings</h3>
+              <div className="w-12 h-12 bg-green-200 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                </svg>
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <div className="text-sm text-gray-600 mb-1">Aave</div>
+              <div className="text-4xl font-bold text-gray-900">149,576</div>
+              <div className="text-sm text-gray-600">USDC</div>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-sm text-gray-600">
+                Your average savings growth is <span className="bg-green-200 text-green-800 px-2 py-1 rounded text-sm font-medium">138.60 USDC</span>
+              </p>
+            </div>
+            
+            <div className="space-y-3">
+              <button className="w-full bg-black text-white py-3 rounded-xl font-medium hover:bg-gray-800 transition-colors duration-200 flex items-center justify-center space-x-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+                <span>Add Funds from Wallet</span>
+              </button>
+              <button className="w-full border border-gray-300 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-50 transition-colors duration-200 flex items-center justify-center space-x-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                <span>Withdraw</span>
+              </button>
+            </div>
+          </div>
+        </div>
+          </main>
+        );
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-white">
+      <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
+      {renderContent()}
     </div>
   );
 }
