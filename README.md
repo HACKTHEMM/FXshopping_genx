@@ -82,34 +82,69 @@ FXshopping_genx/
 │   ├── components/              # Reusable React components
 │   │   ├── Login.tsx           # Authentication component
 │   │   ├── Navbar.tsx          # Navigation component
+│   │   ├── PaymentExecution.tsx # Payment execution component
+│   │   ├── RouteSearch.tsx     # Route search component
 │   │   ├── Settings.tsx        # Settings and profile management
 │   │   └── Transactions.tsx    # Transaction history component
 │   ├── dashboard/              # Dashboard page
 │   │   └── page.tsx           # Main dashboard implementation
 │   ├── login/                  # Login page
 │   │   └── page.tsx           # Login page wrapper
+│   ├── payment/                # Payment page
+│   │   └── page.tsx           # Payment execution page
 │   ├── favicon.ico             # Site favicon
 │   ├── globals.css             # Global styles and Tailwind imports
 │   ├── layout.tsx              # Root layout component
 │   └── page.tsx                # Landing page component
 ├── lib/                        # Utility libraries
-│   ├── stellar.ts              # Stellar blockchain integration
+│   ├── api-client.ts           # Frontend API client
+│   ├── anchor-integration.ts   # MoneyGram anchor provider integration
+│   ├── compliance-security.ts  # Compliance and security utilities
+│   ├── config.ts               # Environment configuration management
+│   ├── freight-wallet.ts       # Freight Wallet integration
 │   ├── route-optimizer.ts      # Route optimization engine
-│   └── api-client.ts           # Frontend API client
+│   ├── stellar.ts              # Stellar blockchain integration
+│   └── streaming-service.ts    # Real-time streaming services
+├── contracts/                  # Smart contracts (Rust)
+│   ├── payment_rules.rs        # Payment rules contract
+│   └── payment_rules_test.rs   # Contract tests
 ├── fonts/                      # Custom font files
 │   ├── PPValve-PlainExtralight.otf
+│   ├── PPValve-PlainExtralightItalic.otf
 │   ├── PPValve-PlainMedium.otf
+│   ├── PPValve-PlainMediumItalic.otf
 │   ├── PPValve-PlainExtrabold.otf
-│   └── [Additional font variants]
+│   ├── PPValve-PlainExtraboldItalic.otf
+│   ├── PPValve-StencilExtralight.otf
+│   ├── PPValve-StencilExtralightItalic.otf
+│   ├── PPValve-StencilMedium.otf
+│   ├── PPValve-StencilMediumItalic.otf
+│   ├── PPValve-StencilExtrabold.otf
+│   └── PPValve-StencilExtraboldItalic.otf
 ├── public/                     # Static assets
-│   ├── stellar-xlm-logo.png    # Stellar blockchain logo
-│   └── [Other SVG assets]
+│   ├── file.svg               # File icon
+│   ├── globe.svg              # Globe icon
+│   ├── next.svg               # Next.js logo
+│   ├── stellar-xlm-logo.png   # Stellar blockchain logo
+│   ├── vercel.svg             # Vercel logo
+│   └── window.svg             # Window icon
+├── scripts/                    # Utility scripts
+│   ├── deploy-contract.js      # Smart contract deployment
+│   ├── setup-config.js         # Interactive configuration setup
+│   ├── test-api.js             # API testing utilities
+│   └── test-comprehensive.js   # Comprehensive testing suite
 ├── eslint.config.mjs           # ESLint configuration
 ├── next.config.ts              # Next.js configuration
+├── next-env.d.ts               # Next.js TypeScript declarations
 ├── package.json                # Dependencies and scripts
+├── package-lock.json           # Dependency lock file
 ├── postcss.config.mjs          # PostCSS configuration
 ├── tsconfig.json               # TypeScript configuration
 ├── API_DOCUMENTATION.md        # Complete API documentation
+├── API_INTEGRATION_GUIDE.md    # API integration setup guide
+├── DEPLOYMENT_GUIDE.md         # Production deployment guide
+├── IMPLEMENTATION_SUMMARY.md   # Technical implementation summary
+├── env.example                 # Environment variables template
 └── README.md                   # This file
 ```
 
