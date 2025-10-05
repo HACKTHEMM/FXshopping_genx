@@ -63,11 +63,11 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="flex items-center space-x-2 sm:space-x-4">
-            <Link href="/dashboard" className="hidden sm:block text-sm text-gray-700 hover:text-black transition-colors">
+            <Link href="/login" className="hidden sm:block text-sm text-gray-700 hover:text-black transition-colors">
               Create Account
             </Link>
-            <Link href="/dashboard" className="bg-black text-white px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium hover:bg-gray-800 transition-colors">
-              Log In
+            <Link href="/login" className="bg-black text-white px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium hover:bg-gray-800 transition-colors">
+              Connect Wallet
             </Link>
             <button 
               className="md:hidden p-2 text-gray-700"
@@ -92,7 +92,7 @@ export default function LandingPage() {
               <a href="#how-it-works" className="text-sm text-gray-700 hover:text-black" onClick={() => setMobileMenuOpen(false)}>How It Works</a>
               <a href="#faq" className="text-sm text-gray-700 hover:text-black" onClick={() => setMobileMenuOpen(false)}>FAQ</a>
               <a href="#blog" className="text-sm text-gray-700 hover:text-black" onClick={() => setMobileMenuOpen(false)}>Blog</a>
-              <Link href="/dashboard" className="text-sm text-gray-700 hover:text-black sm:hidden" onClick={() => setMobileMenuOpen(false)}>
+              <Link href="/login" className="text-sm text-gray-700 hover:text-black sm:hidden" onClick={() => setMobileMenuOpen(false)}>
                 Create Account
               </Link>
             </div>
@@ -120,7 +120,7 @@ export default function LandingPage() {
                 With LumenFX, transferring is an art stress-free. Start in minutes—no paperwork required.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                <Link href="/dashboard" className="bg-blue-600 text-white px-6 py-3 font-medium hover:bg-blue-700 transition-colors text-sm sm:text-base text-center">
+                <Link href="/login" className="bg-blue-600 text-white px-6 py-3 font-medium hover:bg-blue-700 transition-colors text-sm sm:text-base text-center">
                   Get started
                 </Link>
                 <a href="#how-it-works" className="border-2 border-gray-900 text-black px-6 py-3 font-medium hover:bg-gray-900 hover:text-white transition-all text-sm sm:text-base text-center">
@@ -381,10 +381,10 @@ export default function LandingPage() {
             Join thousands who trust LumenFX for transparent, optimized cross-border payments powered by Stellar blockchain.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4">
-            <Link href="/dashboard" className="bg-blue-600 text-white px-6 sm:px-8 py-3 font-medium hover:bg-blue-700 transition-colors text-sm sm:text-base text-center">
+                <Link href="/login" className="bg-blue-600 text-white px-6 sm:px-8 py-3 font-medium hover:bg-blue-700 transition-colors text-sm sm:text-base text-center">
               Get Started
             </Link>
-            <Link href="/dashboard" className="border-2 border-gray-900 text-black px-6 sm:px-8 py-3 font-medium hover:bg-gray-900 hover:text-white transition-all text-sm sm:text-base text-center">
+            <Link href="/login" className="border-2 border-gray-900 text-black px-6 sm:px-8 py-3 font-medium hover:bg-gray-900 hover:text-white transition-all text-sm sm:text-base text-center">
               Try Demo
             </Link>
           </div>
@@ -440,7 +440,7 @@ export default function LandingPage() {
           </div>
           <div className="border-t border-gray-200 pt-6 sm:pt-8 text-center text-xs sm:text-sm text-gray-600">
             <p>Copyright © 2025 @ LumenFX. All rights reserved.</p>
-            <p className="mt-2">Designed & Developed by <a href="#" className="text-blue-600 hover:underline">Stellar & Mateusz Madura</a></p>
+            <p className="mt-2">Designed & Developed by <a href="#" className="text-blue-600 hover:underline">Hackthem</a></p>
           </div>
         </div>
       </footer>

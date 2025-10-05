@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import Transactions from '../components/Transactions';
 import Settings from '../components/Settings';
-import Login from '../components/Login';
 
 const savingsData = [
   { month: 'Jan', amount: 50 },
@@ -23,23 +23,29 @@ const savingsData = [
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('Dashboard');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [publicKey, setPublicKey] = useState<string | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const router = useRouter();
   const maxAmount = Math.max(...savingsData.map(d => d.amount));
 
   useEffect(() => {
-    // Check if user is authenticated (you can implement proper auth logic here)
-    const authStatus = localStorage.getItem('isAuthenticated');
-    setIsAuthenticated(authStatus === 'true');
+    const storedAddress = localStorage.getItem('stellarAddress');
+    const fallbackPublicKey = localStorage.getItem('publicKey');
+    const key = storedAddress || fallbackPublicKey;
+    setPublicKey(key);
+    setIsCheckingAuth(false);
   }, []);
 
-  const handleLogin = () => {
-    localStorage.setItem('isAuthenticated', 'true');
-    setIsAuthenticated(true);
+  const handleLogin = (key: string) => {
+    localStorage.setItem('stellarAddress', key);
+    setPublicKey(key);
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated');
-    setIsAuthenticated(false);
+    localStorage.removeItem('stellarAddress');
+    localStorage.removeItem('publicKey');
+    setPublicKey(null);
+    window.location.href = '/login';
   };
 
   const renderContent = () => {
@@ -447,8 +453,18 @@ export default function Dashboard() {
     }
   };
 
-  if (!isAuthenticated) {
-    return <Login onLogin={handleLogin} />;
+  useEffect(() => {
+    if (!isCheckingAuth && !publicKey) {
+      router.replace('/login');
+    }
+  }, [publicKey, isCheckingAuth, router]);
+
+  if (isCheckingAuth || !publicKey) {
+    return (
+      <div className="h-screen overflow-hidden bg-white flex items-center justify-center">
+        <span className="text-gray-600 text-sm">{isCheckingAuth ? 'Checking session…' : 'Redirecting to login...'}</span>
+      </div>
+    );
   }
 
   return (

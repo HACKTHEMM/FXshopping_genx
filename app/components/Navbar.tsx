@@ -60,8 +60,11 @@ export default function Navbar({ activeTab, onTabChange, onLogout }: NavbarProps
         <div className="flex items-center space-x-2 sm:space-x-4 lg:space-x-6">
           {/* Wallet Address - Responsive */}
           <div className="hidden sm:flex items-center space-x-2">
-            <span className="text-xs sm:text-sm font-mono text-black truncate max-w-[120px] sm:max-w-none">
-              0x62D58207...6987f3588
+            <span className="text-xs sm:text-sm font-mono text-black truncate max-w-[160px] sm:max-w-none">
+              {typeof window !== 'undefined' ? (() => {
+                const addr = localStorage.getItem('stellarAddress') || localStorage.getItem('publicKey') || '';
+                return addr ? addr.slice(0, 6) + '...' + addr.slice(-6) : '';
+              })() : ''}
             </span>
             <button className="p-1 text-gray-400 hover:text-gray-600 transition-colors">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -135,7 +138,10 @@ export default function Navbar({ activeTab, onTabChange, onLogout }: NavbarProps
           {/* Mobile Wallet Address */}
           <div className="sm:hidden flex items-center justify-between px-3 py-2.5 bg-gray-50 rounded-lg mt-2">
             <span className="text-xs font-mono text-black truncate">
-              0x62D58207...6987f3588
+              {typeof window !== 'undefined' ? (() => {
+                const addr = localStorage.getItem('stellarAddress') || localStorage.getItem('publicKey') || '';
+                return addr ? addr.slice(0, 6) + '...' + addr.slice(-6) : '';
+              })() : ''}
             </span>
             <button className="p-1 text-gray-400 hover:text-gray-600">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
