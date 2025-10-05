@@ -30,7 +30,7 @@ export default function Navbar({ activeTab, onTabChange, onLogout }: NavbarProps
           
           {/* Desktop Navigation - Hidden on mobile */}
           <nav className="hidden md:flex space-x-4 lg:space-x-8">
-            {['Dashboard', 'Transactions', 'Settings'].map((tab) => (
+            {['Dashboard', 'Payment', 'Transactions', 'Settings'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => handleTabChange(tab)}
@@ -108,7 +108,7 @@ export default function Navbar({ activeTab, onTabChange, onLogout }: NavbarProps
       >
         <nav className="flex flex-col space-y-1 pt-4 pb-2 border-t border-gray-100 mt-3">
           {/* Mobile Navigation Links */}
-          {['Dashboard', 'Transactions', 'Settings'].map((tab) => (
+          {['Dashboard', 'Payment', 'Transactions', 'Settings'].map((tab) => (
             <button
               key={tab}
               onClick={() => handleTabChange(tab)}

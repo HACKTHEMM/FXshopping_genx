@@ -120,12 +120,12 @@ export default function LandingPage() {
                 With LumenFX, transferring is an art stress-free. Start in minutes—no paperwork required.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                <Link href="/dashboard" className="bg-blue-600 text-white px-6 py-3 font-medium hover:bg-blue-700 transition-colors text-sm sm:text-base text-center">
-                  Get started
+                <Link href="/payment" className="bg-blue-600 text-white px-6 py-3 font-medium hover:bg-blue-700 transition-colors text-sm sm:text-base text-center">
+                  Find Best Route
                 </Link>
-                <a href="#how-it-works" className="border-2 border-gray-900 text-black px-6 py-3 font-medium hover:bg-gray-900 hover:text-white transition-all text-sm sm:text-base text-center">
-                  See How It Works
-                </a>
+                <Link href="/dashboard" className="border-2 border-gray-900 text-black px-6 py-3 font-medium hover:bg-gray-900 hover:text-white transition-all text-sm sm:text-base text-center">
+                  Dashboard
+                </Link>
               </div>
             </div>
 
@@ -172,6 +172,77 @@ export default function LandingPage() {
               {/* Floating Badge */}
               <div className="absolute -right-2 sm:-right-4 -top-2 sm:-top-4 bg-blue-600 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium shadow-lg">
                 Live Rates
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Quick Route Search Section */}
+      <section className="px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-24">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-black mb-4">
+              <span className="text-blue-600">Find the best rate</span> in seconds
+            </h2>
+            <p className="text-gray-600 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto">
+              Compare rates across Stellar network and traditional FX providers to get the most for your money.
+            </p>
+          </div>
+          
+          {/* Quick Search Demo */}
+          <div className="bg-white rounded-lg shadow-lg p-6 sm:p-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">From</label>
+                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option>USD</option>
+                  <option>EUR</option>
+                  <option>GBP</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">To</label>
+                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option>INR</option>
+                  <option>PHP</option>
+                  <option>XLM</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Amount</label>
+                <input 
+                  type="number" 
+                  placeholder="1000" 
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="flex items-end">
+                <Link href="/payment" className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors text-center">
+                  Search Routes
+                </Link>
+              </div>
+            </div>
+            
+            {/* Demo Results */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-600">Best route found:</span>
+                <span className="text-sm font-medium text-green-600">Save $15.50 vs traditional providers</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600">Provider:</span>
+                  <span className="ml-2 font-medium">Stellar Network</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Recipient gets:</span>
+                  <span className="ml-2 font-medium">₹83,250</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Fees:</span>
+                  <span className="ml-2 font-medium text-red-600">$0.0001</span>
+                </div>
               </div>
             </div>
           </div>

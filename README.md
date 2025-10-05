@@ -1,6 +1,6 @@
-# LumenFX - Modern Payments Dashboard
+# StellarFX Shopper - Intelligent Cross-Border Payment Platform
 
-A modern, responsive financial dashboard application built with Next.js, featuring wallet management, savings tracking, and transaction history. LumenFX leverages the Stellar blockchain for optimized cross-border payments with transparent fee structures.
+A real-time, intelligent cross-border payment platform that empowers users by dynamically finding and executing the best foreign exchange (FX) routes using the Stellar blockchain and off-chain FX providers. StellarFX Shopper combines Stellar's native path payment and asset gateway features with live off-chain FX quotes and anchor withdrawal costs to optimize the total net amount the recipient receives, transparently showing all fees and spreads.
 
 ## 🚀 Features
 
@@ -37,8 +37,18 @@ A modern, responsive financial dashboard application built with Next.js, featuri
 - **Social Integration**: Google and Twitter OAuth options
 - **Security Features**: Password visibility toggles and validation
 
+### Backend API
+- **Route Search**: Find optimal payment routes across Stellar and FX providers
+- **Payment Execution**: Execute payments through selected routes
+- **Transaction Monitoring**: Real-time transaction status tracking
+- **Multi-Provider Support**: Integration with Wise, Remitly, WorldRemit, and Stellar anchors
+- **Route Optimization**: AI-powered route ranking by net recipient amount
+- **Fee Transparency**: Complete fee breakdown for all payment methods
+- **Health Monitoring**: System health checks and service status
+
 ## 🛠️ Technology Stack
 
+### Frontend
 - **Framework**: Next.js 15.5.4 with App Router
 - **Language**: TypeScript 5
 - **Styling**: Tailwind CSS 4 with PostCSS
@@ -49,11 +59,26 @@ A modern, responsive financial dashboard application built with Next.js, featuri
 - **Icons**: Heroicons (SVG-based)
 - **Build Tool**: Turbopack (Next.js built-in)
 
+### Backend
+- **API Framework**: Next.js API Routes
+- **Blockchain Integration**: Stellar SDK 11.2.2
+- **Network**: Stellar Testnet
+- **Route Optimization**: Custom algorithm with multi-provider support
+- **FX Providers**: Wise, Remitly, WorldRemit, Stellar Anchors
+- **Real-time Data**: Stellar Horizon API integration
+
 ## 📁 Project Structure
 
 ```
 FXshopping_genx/
 ├── app/                          # Next.js App Router directory
+│   ├── api/                     # Backend API routes
+│   │   ├── routes/              # Payment route APIs
+│   │   │   ├── search/          # Route search endpoint
+│   │   │   ├── execute/         # Payment execution endpoint
+│   │   │   └── status/          # Transaction status endpoint
+│   │   ├── currencies/          # Currency information endpoint
+│   │   └── health/              # Health check endpoint
 │   ├── components/              # Reusable React components
 │   │   ├── Login.tsx           # Authentication component
 │   │   ├── Navbar.tsx          # Navigation component
@@ -67,6 +92,10 @@ FXshopping_genx/
 │   ├── globals.css             # Global styles and Tailwind imports
 │   ├── layout.tsx              # Root layout component
 │   └── page.tsx                # Landing page component
+├── lib/                        # Utility libraries
+│   ├── stellar.ts              # Stellar blockchain integration
+│   ├── route-optimizer.ts      # Route optimization engine
+│   └── api-client.ts           # Frontend API client
 ├── fonts/                      # Custom font files
 │   ├── PPValve-PlainExtralight.otf
 │   ├── PPValve-PlainMedium.otf
@@ -80,6 +109,7 @@ FXshopping_genx/
 ├── package.json                # Dependencies and scripts
 ├── postcss.config.mjs          # PostCSS configuration
 ├── tsconfig.json               # TypeScript configuration
+├── API_DOCUMENTATION.md        # Complete API documentation
 └── README.md                   # This file
 ```
 
@@ -109,15 +139,15 @@ FXshopping_genx/
    ```
 
 3. **Run the development server**
-   ```bash
-   npm run dev
-   # or
-   yarn dev
-   # or
-   pnpm dev
-   # or
-   bun dev
-   ```
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
 
 4. **Open your browser**
    Navigate to [http://localhost:3000](http://localhost:3000) to see the application.
@@ -128,6 +158,9 @@ FXshopping_genx/
 - `npm run build` - Build the application for production
 - `npm run start` - Start the production server
 - `npm run lint` - Run ESLint for code quality checks
+- `npm run setup` - Interactive configuration setup
+- `npm run health` - Check service health status
+- `npm run test:api` - Test API endpoints
 
 ## 🎨 Design System
 
@@ -197,6 +230,59 @@ The application is fully optimized for mobile devices with:
 - Optimized form layouts
 - Mobile-specific component arrangements
 
+## 🔌 API Usage
+
+### Search for Payment Routes
+```typescript
+import { apiClient } from '@/lib/api-client';
+
+const routes = await apiClient.searchRoutes({
+  sourceCurrency: 'USD',
+  targetCurrency: 'INR',
+  sourceAmount: 1000,
+  sourceAccount: 'GCKFBEIYTKPQY5H...', // Optional
+  targetAccount: 'GBKFBEIYTKPQY5H...' // Optional
+});
+
+console.log('Best route:', routes.routes[0]);
+console.log('Total savings:', routes.summary.savings.vsWorst);
+```
+
+### Execute Payment
+```typescript
+const result = await apiClient.executePayment({
+  routeId: routes.routes[0].id,
+  sourceAccount: 'GCKFBEIYTKPQY5H...',
+  targetAccount: 'GBKFBEIYTKPQY5H...',
+  routeType: routes.routes[0].type,
+  sourceCurrency: 'USD',
+  targetCurrency: 'INR',
+  sourceAmount: 1000,
+  targetAmount: 83250,
+  memo: 'Payment via StellarFX Shopper'
+});
+
+console.log('Transaction hash:', result.transaction.hash);
+```
+
+### Check Transaction Status
+```typescript
+const status = await apiClient.getTransactionStatus(
+  undefined, // transactionId
+  'a1b2c3d4e5f6789...' // transactionHash
+);
+
+console.log('Status:', status.transaction.status);
+console.log('Explorer URL:', status.tracking.stellarExplorerUrl);
+```
+
+### Get Supported Currencies
+```typescript
+const currencies = await apiClient.getCurrencies();
+console.log('Supported currencies:', currencies.currencies);
+console.log('Exchange rates:', currencies.exchangeRates.rates);
+```
+
 ## 🚀 Deployment
 
 The application is ready for deployment on platforms like:
@@ -210,6 +296,53 @@ The application is ready for deployment on platforms like:
 npm run build
 npm run start
 ```
+
+### Environment Variables
+
+#### Quick Setup
+Run the interactive setup script:
+```bash
+npm run setup
+```
+
+#### Manual Configuration
+Create a `.env.local` file with the following variables:
+
+```env
+# Stellar Network (Required)
+STELLAR_HORIZON_URL=https://horizon-testnet.stellar.org
+STELLAR_NETWORK_PASSPHRASE=Test SDF Network ; September 2015
+STELLAR_BASE_FEE=100
+
+# MoneyGram Anchor Provider (Optional)
+MONEYGRAM_API_KEY=your_moneygram_api_key_here
+MONEYGRAM_API_URL=https://api.moneygram.com/v1
+MONEYGRAM_CLIENT_ID=your_moneygram_client_id_here
+MONEYGRAM_CLIENT_SECRET=your_moneygram_client_secret_here
+
+# Freight Wallet (Optional)
+FREIGHT_WALLET_API_KEY=your_freight_wallet_api_key_here
+FREIGHT_WALLET_API_URL=https://api.freightwallet.com/v1
+FREIGHT_WALLET_CLIENT_ID=your_freight_wallet_client_id_here
+FREIGHT_WALLET_REDIRECT_URI=http://localhost:3000/auth/callback
+
+# WalletConnect (Optional)
+WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id_here
+
+# Application Configuration
+NODE_ENV=development
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+JWT_SECRET=your_jwt_secret_here
+ENCRYPTION_KEY=your_32_byte_encryption_key_here
+```
+
+#### Service Configuration
+- **Stellar Network**: Configured for testnet by default (no API key required)
+- **MoneyGram**: For real-time quotes and off-chain payouts
+- **Freight Wallet**: For secure wallet connection and transaction signing
+- **WalletConnect**: For multi-wallet support
+
+See [API Integration Guide](./API_INTEGRATION_GUIDE.md) for detailed setup instructions.
 
 ## 🤝 Contributing
 

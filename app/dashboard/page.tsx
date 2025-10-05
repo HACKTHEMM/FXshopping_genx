@@ -5,6 +5,7 @@ import Navbar from '../components/Navbar';
 import Transactions from '../components/Transactions';
 import Settings from '../components/Settings';
 import Login from '../components/Login';
+import RouteSearch from '../components/RouteSearch';
 
 const savingsData = [
   { month: 'Jan', amount: 50 },
@@ -44,6 +45,12 @@ export default function Dashboard() {
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'Payment':
+        return (
+          <main className="h-full px-4 md:px-6 lg:px-8 py-4 md:py-6 lg:py-4 overflow-auto">
+            <RouteSearch />
+          </main>
+        );
       case 'Transactions':
         return <Transactions />;
       case 'Settings':
