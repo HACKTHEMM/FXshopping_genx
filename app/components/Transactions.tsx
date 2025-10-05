@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 interface Transaction {
   id: string;
@@ -12,62 +12,7 @@ interface Transaction {
   hash: string;
 }
 
-const transactions: Transaction[] = [
-  {
-    id: '1',
-    type: 'wallet-to-payout',
-    amount: 49500,
-    currency: 'USDC',
-    date: '28/03/25',
-    time: '4:12 PM',
-    hash: '0xc817d3feaf90de3dbc...a2f213'
-  },
-  {
-    id: '2',
-    type: 'savings-to-wallet',
-    amount: 21000,
-    currency: 'USDC',
-    date: '28/03/25',
-    time: '2:01 PM',
-    hash: '0xa1b2c3d4e5f6789...b3c4d5e6'
-  },
-  {
-    id: '3',
-    type: 'wallet-to-savings',
-    amount: 149576,
-    currency: 'USDC',
-    date: '27/03/25',
-    time: '11:49 AM',
-    hash: '0xf9e8d7c6b5a493...8271f0e9'
-  },
-  {
-    id: '4',
-    type: 'deposit-to-wallet',
-    amount: 140557,
-    currency: 'USDC',
-    date: '27/03/25',
-    time: '10:28 AM',
-    hash: '0x1234567890abcdef...fedcba0987'
-  },
-  {
-    id: '5',
-    type: 'wallet-to-payout',
-    amount: 35000,
-    currency: 'USDC',
-    date: '26/03/25',
-    time: '3:45 PM',
-    hash: '0xabcdef123456...987654fedcba'
-  },
-  {
-    id: '6',
-    type: 'deposit-to-wallet',
-    amount: 50000,
-    currency: 'USDC',
-    date: '25/03/25',
-    time: '9:30 AM',
-    hash: '0x9876543210...abcdef123456'
-  }
-];
+const horizonUrl = 'https://horizon-testnet.stellar.org';
 
 const getTransactionTypeInfo = (type: Transaction['type']) => {
   switch (type) {
@@ -86,6 +31,14 @@ const getTransactionTypeInfo = (type: Transaction['type']) => {
 
 const TransactionCard = ({ transaction }: { transaction: Transaction }) => {
   const typeInfo = getTransactionTypeInfo(transaction.type);
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard?.writeText(transaction.hash);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    } catch {}
+  };
   
   return (
     <div className="bg-white border border-gray-200 p-4 lg:p-5 hover:shadow-sm transition-shadow">
@@ -119,20 +72,81 @@ const TransactionCard = ({ transaction }: { transaction: Transaction }) => {
       
       {/* Transaction Hash */}
       <div className="flex items-center space-x-2">
-        <span className="text-xs font-mono text-gray-500 truncate">{transaction.hash}</span>
-        <button className="p-1 text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0">
+        <button
+          onClick={copy}
+          className="text-xs font-mono text-gray-500 truncate text-left"
+          title="Click to copy ID"
+        >
+          {transaction.hash}
+        </button>
+        <button
+          onClick={copy}
+          className="p-1 text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+          title="Copy ID"
+        >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
           </svg>
         </button>
+        {copied && <span className="text-[10px] text-green-600">Copied!</span>}
       </div>
     </div>
   );
 };
 
-export default function Transactions() {
+export default function Transactions({ address }: { address?: string }) {
   const [timeFilter, setTimeFilter] = useState('Last 30 days');
-  const [currencyFilter, setCurrencyFilter] = useState('USDC');
+  const [items, setItems] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const account = useMemo(() => address || localStorage.getItem('stellarAddress') || localStorage.getItem('publicKey') || undefined, [address]);
+
+  const fetchTxs = async (addr: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${horizonUrl}/accounts/${addr}/payments?limit=20&order=desc`);
+      const data = await res.json();
+      const records = (data._embedded?.records || []) as any[];
+      const mapped: Transaction[] = records.map((r, idx) => {
+        const created = new Date(r.created_at);
+        const amount = Number(r.amount || r.starting_balance || 0);
+        const assetCode = r.asset_code || (r.asset_type === 'native' ? 'XLM' : 'ASSET');
+        let type: Transaction['type'] = 'deposit-to-wallet';
+        if (r.type === 'payment' || r.type === 'path_payment_strict_receive' || r.type === 'path_payment_strict_send') {
+          type = r.to === addr ? 'deposit-to-wallet' : 'wallet-to-payout';
+        }
+        return {
+          id: r.id || String(idx + 1),
+          type,
+          amount: isNaN(amount) ? 0 : amount,
+          currency: 'XLM',
+          date: created.toLocaleDateString(),
+          time: created.toLocaleTimeString(),
+          hash: r.transaction_hash || r.id,
+        };
+      });
+      setItems(mapped);
+    } catch {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!account) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
+    fetchTxs(account);
+  }, [account]);
+
+  useEffect(() => {
+    if (!account) return;
+    const onFocus = () => fetchTxs(account);
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [account]);
 
   return (
     <div className="h-full bg-white overflow-hidden">
@@ -156,15 +170,7 @@ export default function Transactions() {
               <option>Last 90 days</option>
               <option>All time</option>
             </select>
-            <select 
-              value={currencyFilter}
-              onChange={(e) => setCurrencyFilter(e.target.value)}
-              className="px-4 py-2 text-black border border-gray-300 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option>USDC</option>
-              <option>USD</option>
-              <option>ETH</option>
-            </select>
+            <div className="px-4 py-2 text-black border border-gray-300 bg-gray-50 text-sm font-medium">XLM</div>
           </div>
         </div>
 
@@ -192,9 +198,15 @@ export default function Transactions() {
 
         {/* Transaction List */}
         <div className="space-y-4">
-          {transactions.map((transaction) => (
-            <TransactionCard key={transaction.id} transaction={transaction} />
-          ))}
+          {loading ? (
+            <div className="text-sm text-gray-500">Loading transactions…</div>
+          ) : items.length === 0 ? (
+            <div className="text-sm text-gray-500">No recent transactions</div>
+          ) : (
+            items.map((transaction) => (
+              <TransactionCard key={transaction.id} transaction={transaction} />
+            ))
+          )}
         </div>
       </div>
 
@@ -221,15 +233,7 @@ export default function Transactions() {
                   <option>Last 90 days</option>
                   <option>All time</option>
                 </select>
-                <select 
-                  value={currencyFilter}
-                  onChange={(e) => setCurrencyFilter(e.target.value)}
-                  className="px-4 py-2 text-black border border-gray-300 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option>USDC</option>
-                  <option>USD</option>
-                  <option>ETH</option>
-                </select>
+                <div className="px-4 py-2 text-black border border-gray-300 bg-gray-50 text-sm font-medium">XLM</div>
               </div>
             </div>
           </div>
@@ -260,9 +264,15 @@ export default function Transactions() {
         {/* Right Section - Scrollable Transaction List */}
         <div className="lg:col-span-7 xl:col-span-7 bg-gray-50 h-full overflow-y-auto">
           <div className="p-6 xl:p-8 space-y-4">
-            {transactions.map((transaction) => (
-              <TransactionCard key={transaction.id} transaction={transaction} />
-            ))}
+            {loading ? (
+              <div className="text-sm text-gray-500">Loading transactions…</div>
+            ) : items.length === 0 ? (
+              <div className="text-sm text-gray-500">No recent transactions</div>
+            ) : (
+              items.map((transaction) => (
+                <TransactionCard key={transaction.id} transaction={transaction} />
+              ))
+            )}
           </div>
         </div>
       </div>

@@ -60,13 +60,31 @@ export default function Navbar({ activeTab, onTabChange, onLogout }: NavbarProps
         <div className="flex items-center space-x-2 sm:space-x-4 lg:space-x-6">
           {/* Wallet Address - Responsive */}
           <div className="hidden sm:flex items-center space-x-2">
-            <span className="text-xs sm:text-sm font-mono text-black truncate max-w-[160px] sm:max-w-none">
+            <button
+              onClick={() => {
+                if (typeof window === 'undefined') return;
+                const addr = localStorage.getItem('stellarAddress') || localStorage.getItem('publicKey') || '';
+                if (!addr) return;
+                navigator.clipboard?.writeText(addr);
+              }}
+              className="text-xs sm:text-sm font-mono text-black truncate max-w-[160px] sm:max-w-none text-left"
+              title="Click to copy address"
+            >
               {typeof window !== 'undefined' ? (() => {
                 const addr = localStorage.getItem('stellarAddress') || localStorage.getItem('publicKey') || '';
                 return addr ? addr.slice(0, 6) + '...' + addr.slice(-6) : '';
               })() : ''}
-            </span>
-            <button className="p-1 text-gray-400 hover:text-gray-600 transition-colors">
+            </button>
+            <button
+              onClick={() => {
+                if (typeof window === 'undefined') return;
+                const addr = localStorage.getItem('stellarAddress') || localStorage.getItem('publicKey') || '';
+                if (!addr) return;
+                navigator.clipboard?.writeText(addr);
+              }}
+              className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+              title="Copy address"
+            >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
@@ -137,13 +155,31 @@ export default function Navbar({ activeTab, onTabChange, onLogout }: NavbarProps
 
           {/* Mobile Wallet Address */}
           <div className="sm:hidden flex items-center justify-between px-3 py-2.5 bg-gray-50 rounded-lg mt-2">
-            <span className="text-xs font-mono text-black truncate">
+            <button
+              onClick={() => {
+                if (typeof window === 'undefined') return;
+                const addr = localStorage.getItem('stellarAddress') || localStorage.getItem('publicKey') || '';
+                if (!addr) return;
+                navigator.clipboard?.writeText(addr);
+              }}
+              className="text-xs font-mono text-black truncate text-left"
+              title="Tap to copy address"
+            >
               {typeof window !== 'undefined' ? (() => {
                 const addr = localStorage.getItem('stellarAddress') || localStorage.getItem('publicKey') || '';
                 return addr ? addr.slice(0, 6) + '...' + addr.slice(-6) : '';
               })() : ''}
-            </span>
-            <button className="p-1 text-gray-400 hover:text-gray-600">
+            </button>
+            <button
+              onClick={() => {
+                if (typeof window === 'undefined') return;
+                const addr = localStorage.getItem('stellarAddress') || localStorage.getItem('publicKey') || '';
+                if (!addr) return;
+                navigator.clipboard?.writeText(addr);
+              }}
+              className="p-1 text-gray-400 hover:text-gray-600"
+              title="Copy address"
+            >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
