@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import Transactions from '../components/Transactions';
 import Settings from '../components/Settings';
+import Routes from '../components/Routes';
 
 // Calculate balance history from payment operations
 const calculateBalanceHistory = async (publicKey: string) => {
@@ -130,6 +131,14 @@ export default function Dashboard() {
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'Routes':
+        return (
+          <div className="h-full overflow-auto px-4 md:px-6 lg:px-8 py-4 md:py-6">
+            <div className="max-w-[1400px] mx-auto">
+              <Routes publicKey={publicKey || undefined} />
+            </div>
+          </div>
+        );
       case 'Transactions':
         return <Transactions address={publicKey || undefined} />;
       case 'Settings':
