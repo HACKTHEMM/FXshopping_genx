@@ -45,35 +45,43 @@ export async function GET(request: NextRequest) {
     const endpoint = type === 'send' ? '/paths/strict-send' : '/paths/strict-receive';
     const params = new URLSearchParams();
 
-    // Source asset parameters
+    // Source asset parameters (always needed)
     if (source.type === 'native') {
       params.append('source_asset_type', 'native');
     } else {
-      params.append('source_asset_type', 'credit_alphanum4'); // Adjust based on code length
+      // Stellar uses credit_alphanum4 for codes 1-4 chars, credit_alphanum12 for 5-12 chars
+      const sourceAssetType = source.code && source.code.length <= 4 
+        ? 'credit_alphanum4' 
+        : 'credit_alphanum12';
+      params.append('source_asset_type', sourceAssetType);
       if (source.code) params.append('source_asset_code', source.code);
       if (source.issuer) params.append('source_asset_issuer', source.issuer);
-    }
-
-    // Destination asset parameters
-    if (dest.type === 'native') {
-      params.append('destination_asset_type', 'native');
-    } else {
-      params.append('destination_asset_type', 'credit_alphanum4');
-      if (dest.code) params.append('destination_asset_code', dest.code);
-      if (dest.issuer) params.append('destination_asset_issuer', dest.issuer);
     }
 
     // Amount parameter (different field names for send vs receive)
     if (type === 'send') {
       params.append('source_amount', amount);
-      if (destAccount) {
-        params.append('destination_account', destAccount);
+      
+      // For strict-send, use destination_assets parameter (comma-separated list)
+      if (dest.type === 'native') {
+        params.append('destination_assets', 'native');
+      } else if (dest.code && dest.issuer) {
+        params.append('destination_assets', `${dest.code}:${dest.issuer}`);
       }
     } else {
-      params.append('destination_amount', amount);
-      if (sourceAccount) {
-        params.append('source_account', sourceAccount);
+      // For strict-receive, use individual destination asset parameters
+      if (dest.type === 'native') {
+        params.append('destination_asset_type', 'native');
+      } else {
+        const destAssetType = dest.code && dest.code.length <= 4 
+          ? 'credit_alphanum4' 
+          : 'credit_alphanum12';
+        params.append('destination_asset_type', destAssetType);
+        if (dest.code) params.append('destination_asset_code', dest.code);
+        if (dest.issuer) params.append('destination_asset_issuer', dest.issuer);
       }
+      
+      params.append('destination_amount', amount);
     }
 
     const url = `${HORIZON_URL}${endpoint}?${params.toString()}`;
@@ -83,6 +91,7 @@ export async function GET(request: NextRequest) {
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      console.error('Horizon API Error:', JSON.stringify(errorData, null, 2));
       return NextResponse.json(
         { 
           error: 'Horizon API error', 
@@ -95,6 +104,52 @@ export async function GET(request: NextRequest) {
 
     const data = await response.json();
     const paths = data._embedded?.records || [];
+
+    // If no paths found via path payment API, try orderbook directly
+    if (paths.length === 0 && type === 'send' && source.type !== 'native' && dest.type !== 'native') {
+      console.log('No paths found, checking orderbook directly...');
+      
+      try {
+        const orderbookUrl = `${HORIZON_URL}/order_book?` + 
+          `selling_asset_type=${source.code && source.code.length <= 4 ? 'credit_alphanum4' : 'credit_alphanum12'}&` +
+          `selling_asset_code=${source.code}&` +
+          `selling_asset_issuer=${source.issuer}&` +
+          `buying_asset_type=${dest.code && dest.code.length <= 4 ? 'credit_alphanum4' : 'credit_alphanum12'}&` +
+          `buying_asset_code=${dest.code}&` +
+          `buying_asset_issuer=${dest.issuer}`;
+        
+        const orderbookResponse = await fetch(orderbookUrl);
+        
+        if (orderbookResponse.ok) {
+          const orderbookData = await orderbookResponse.json();
+          const asks = orderbookData.asks || [];
+          
+          if (asks.length > 0) {
+            // Build a synthetic path from orderbook
+            const bestAsk = asks[0];
+            const rate = parseFloat(bestAsk.price);
+            const destAmount = parseFloat(amount) * rate;
+            
+            const syntheticPath = {
+              source_asset_type: (source.code && source.code.length <= 4) ? 'credit_alphanum4' : 'credit_alphanum12',
+              source_asset_code: source.code || '',
+              source_asset_issuer: source.issuer || '',
+              source_amount: amount,
+              destination_asset_type: (dest.code && dest.code.length <= 4) ? 'credit_alphanum4' : 'credit_alphanum12',
+              destination_asset_code: dest.code || '',
+              destination_asset_issuer: dest.issuer || '',
+              destination_amount: destAmount.toFixed(7),
+              path: [], // Direct trade, no intermediate hops
+            };
+            
+            paths.push(syntheticPath);
+            console.log(`✅ Built synthetic path from orderbook: ${amount} ${source.code} → ${destAmount.toFixed(2)} ${dest.code} @ ${rate}`);
+          }
+        }
+      } catch (orderbookError) {
+        console.error('Orderbook query failed:', orderbookError);
+      }
+    }
 
     // Transform and enrich path data
     const enrichedPaths = paths.map((path: HorizonPathResult, index: number) => {

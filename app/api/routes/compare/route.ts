@@ -183,11 +183,35 @@ export async function POST(request: NextRequest) {
       if (pathsResponse.ok) {
         const pathsData = await pathsResponse.json();
         
+        console.log('📊 Stellar paths received:', pathsData.pathCount, 'paths');
+        if (pathsData.paths?.length > 0) {
+          console.log('First path destination amount:', pathsData.paths[0].destination.amount);
+          console.log('First path effective rate:', pathsData.paths[0].effectiveRate);
+        }
+        
         // Convert Stellar paths to RouteQuote format
         for (const path of (pathsData.paths || []).slice(0, 3)) { // Limit to top 3 paths
           const legs: RouteLeg[] = [];
           
-          // Create legs for each hop in the path
+          // Step 1: Add deposit leg if converting from fiat to token
+          if (sourceFiat && sourceFiat !== path.source.code) {
+            legs.push({
+              type: 'anchor-deposit',
+              from: `${sourceFiat} (Bank)`,
+              to: path.source.code,
+              rate: 1, // 1:1 for tokenized fiat
+              estSeconds: 300, // 5 min deposit
+              fees: [{
+                kind: 'anchor_deposit',
+                amount: 0,
+                asset: path.source.code,
+                note: 'Simulated deposit (no fee in demo)',
+              }],
+              provider: 'Anchor (Simulated)',
+            });
+          }
+          
+          // Step 2: Add on-chain Stellar path legs
           const allAssets = [
             path.source,
             ...path.path,
@@ -199,24 +223,47 @@ export async function POST(request: NextRequest) {
             const toAsset = allAssets[i + 1];
             
             legs.push({
-              type: 'onchain-path',
+              type: 'offchain-quote',
               from: fromAsset.code,
               to: toAsset.code,
-              rate: i === 0 ? path.effectiveRate : 1, // Simplified
+              rate: path.effectiveRate, // Use the actual exchange rate from Horizon
               estSeconds: 5, // Stellar confirmation time
               fees: i === 0 ? [{
                 kind: 'network',
-                amount: 0.00001, // Base fee in XLM
-                asset: 'XLM',
+                amount: 0.0100, // 0.01 INR (network fee)
+                asset: toAsset.code,
                 note: 'Stellar network fee',
               }] : [],
-              provider: 'Stellar Network',
+              provider: 'Stellar On-Chain Path',
             });
           }
+          
+          // Step 3: Add withdrawal leg if converting from token to fiat
+          let finalAmount = path.destination.amount;
+          if (destFiat && destFiat !== path.destination.code) {
+            const withdrawalFee = finalAmount * 0.005; // 0.5% withdrawal fee
+            legs.push({
+              type: 'anchor-withdraw',
+              from: path.destination.code,
+              to: `${destFiat} (Bank)`,
+              rate: 1,
+              estSeconds: 3600, // 1 hour withdrawal
+              fees: [{
+                kind: 'anchor_withdrawal',
+                amount: withdrawalFee,
+                asset: destFiat,
+                note: 'Bank withdrawal fee (0.5%)',
+              }],
+              provider: 'Anchor (Simulated)',
+            });
+            finalAmount -= withdrawalFee;
+          }
 
-          const totalFees = 0.00001; // Minimal Stellar fee
-          const slippageBuffer = path.destination.amount * 0.005; // 0.5%
-          const netReceive = path.destination.amount - slippageBuffer;
+          const totalFees = legs.reduce((sum, leg) => 
+            sum + leg.fees.reduce((feeSum, fee) => feeSum + fee.amount, 0), 0
+          );
+          
+          const netReceive = finalAmount;
 
           const route: RouteQuote = {
             routeId: `route-stellar-${path.pathId}-${requestId}`,
@@ -227,9 +274,9 @@ export async function POST(request: NextRequest) {
             grossSend: sendAmount,
             legs,
             totalFees,
-            netReceive: parseFloat(netReceive.toFixed(6)),
+            netReceive: parseFloat(netReceive.toFixed(2)),
             effectiveRate: netReceive / sendAmount,
-            riskScore: calculateRiskScore(path.hops, 50000, 0.99, 5),
+            riskScore: calculateRiskScore(legs.length, 50000, 0.99, 5),
             slippagePct: 0.5,
             execution: {
               canBuildXDR: true,
@@ -237,7 +284,7 @@ export async function POST(request: NextRequest) {
               requiresKYC: false,
               estimatedConfirmationTime: 5,
             },
-            providerName: `Stellar Path (${path.hops} hops)`,
+            providerName: `Stellar On-Chain Path`,
             references: {
               horizonPathId: path.pathId,
             },

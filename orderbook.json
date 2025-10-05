@@ -1,0 +1,23 @@
+{
+  "bids": [],
+  "asks": [
+    {
+      "price_r": {
+        "n": 167,
+        "d": 2
+      },
+      "price": "83.5000000",
+      "amount": "10000.0000000"
+    }
+  ],
+  "base": {
+    "asset_type": "credit_alphanum12",
+    "asset_code": "USDTEST",
+    "asset_issuer": "GBZWNG2FDICVPDRJ7DMZPV3I76W4G6ISSIU2FHO7RKIZAEF5AA5SUUYP"
+  },
+  "counter": {
+    "asset_type": "credit_alphanum12",
+    "asset_code": "INRTEST",
+    "asset_issuer": "GBZWNG2FDICVPDRJ7DMZPV3I76W4G6ISSIU2FHO7RKIZAEF5AA5SUUYP"
+  }
+}

@@ -1,0 +1,141 @@
+{
+  "_links": {
+    "self": {
+      "href": "https://horizon-testnet.stellar.org/accounts/GC3EAV57VCU4OP46TQL6UIIRRDYZG74VGVLQ3YODCKQWFPVPX2B2ZTM2/offers?cursor=\u0026limit=10\u0026order=asc"
+    },
+    "next": {
+      "href": "https://horizon-testnet.stellar.org/accounts/GC3EAV57VCU4OP46TQL6UIIRRDYZG74VGVLQ3YODCKQWFPVPX2B2ZTM2/offers?cursor=4725\u0026limit=10\u0026order=asc"
+    },
+    "prev": {
+      "href": "https://horizon-testnet.stellar.org/accounts/GC3EAV57VCU4OP46TQL6UIIRRDYZG74VGVLQ3YODCKQWFPVPX2B2ZTM2/offers?cursor=4722\u0026limit=10\u0026order=desc"
+    }
+  },
+  "_embedded": {
+    "records": [
+      {
+        "_links": {
+          "self": {
+            "href": "https://horizon-testnet.stellar.org/offers/4722"
+          },
+          "offer_maker": {
+            "href": "https://horizon-testnet.stellar.org/accounts/GC3EAV57VCU4OP46TQL6UIIRRDYZG74VGVLQ3YODCKQWFPVPX2B2ZTM2"
+          }
+        },
+        "id": "4722",
+        "paging_token": "4722",
+        "seller": "GC3EAV57VCU4OP46TQL6UIIRRDYZG74VGVLQ3YODCKQWFPVPX2B2ZTM2",
+        "selling": {
+          "asset_type": "credit_alphanum12",
+          "asset_code": "USDTEST",
+          "asset_issuer": "GBZWNG2FDICVPDRJ7DMZPV3I76W4G6ISSIU2FHO7RKIZAEF5AA5SUUYP"
+        },
+        "buying": {
+          "asset_type": "credit_alphanum12",
+          "asset_code": "INRTEST",
+          "asset_issuer": "GBZWNG2FDICVPDRJ7DMZPV3I76W4G6ISSIU2FHO7RKIZAEF5AA5SUUYP"
+        },
+        "amount": "10000.0000000",
+        "price_r": {
+          "n": 167,
+          "d": 2
+        },
+        "price": "83.5000000",
+        "last_modified_ledger": 896431,
+        "last_modified_time": "2025-10-05T15:50:13Z"
+      },
+      {
+        "_links": {
+          "self": {
+            "href": "https://horizon-testnet.stellar.org/offers/4723"
+          },
+          "offer_maker": {
+            "href": "https://horizon-testnet.stellar.org/accounts/GC3EAV57VCU4OP46TQL6UIIRRDYZG74VGVLQ3YODCKQWFPVPX2B2ZTM2"
+          }
+        },
+        "id": "4723",
+        "paging_token": "4723",
+        "seller": "GC3EAV57VCU4OP46TQL6UIIRRDYZG74VGVLQ3YODCKQWFPVPX2B2ZTM2",
+        "selling": {
+          "asset_type": "credit_alphanum12",
+          "asset_code": "USDTEST",
+          "asset_issuer": "GBZWNG2FDICVPDRJ7DMZPV3I76W4G6ISSIU2FHO7RKIZAEF5AA5SUUYP"
+        },
+        "buying": {
+          "asset_type": "credit_alphanum12",
+          "asset_code": "PHPTEST",
+          "asset_issuer": "GBZWNG2FDICVPDRJ7DMZPV3I76W4G6ISSIU2FHO7RKIZAEF5AA5SUUYP"
+        },
+        "amount": "10000.0000000",
+        "price_r": {
+          "n": 281,
+          "d": 5
+        },
+        "price": "56.2000000",
+        "last_modified_ledger": 896432,
+        "last_modified_time": "2025-10-05T15:50:18Z"
+      },
+      {
+        "_links": {
+          "self": {
+            "href": "https://horizon-testnet.stellar.org/offers/4724"
+          },
+          "offer_maker": {
+            "href": "https://horizon-testnet.stellar.org/accounts/GC3EAV57VCU4OP46TQL6UIIRRDYZG74VGVLQ3YODCKQWFPVPX2B2ZTM2"
+          }
+        },
+        "id": "4724",
+        "paging_token": "4724",
+        "seller": "GC3EAV57VCU4OP46TQL6UIIRRDYZG74VGVLQ3YODCKQWFPVPX2B2ZTM2",
+        "selling": {
+          "asset_type": "credit_alphanum12",
+          "asset_code": "USDTEST",
+          "asset_issuer": "GBZWNG2FDICVPDRJ7DMZPV3I76W4G6ISSIU2FHO7RKIZAEF5AA5SUUYP"
+        },
+        "buying": {
+          "asset_type": "credit_alphanum12",
+          "asset_code": "EURTEST",
+          "asset_issuer": "GBZWNG2FDICVPDRJ7DMZPV3I76W4G6ISSIU2FHO7RKIZAEF5AA5SUUYP"
+        },
+        "amount": "10000.0000000",
+        "price_r": {
+          "n": 23,
+          "d": 25
+        },
+        "price": "0.9200000",
+        "last_modified_ledger": 896433,
+        "last_modified_time": "2025-10-05T15:50:23Z"
+      },
+      {
+        "_links": {
+          "self": {
+            "href": "https://horizon-testnet.stellar.org/offers/4725"
+          },
+          "offer_maker": {
+            "href": "https://horizon-testnet.stellar.org/accounts/GC3EAV57VCU4OP46TQL6UIIRRDYZG74VGVLQ3YODCKQWFPVPX2B2ZTM2"
+          }
+        },
+        "id": "4725",
+        "paging_token": "4725",
+        "seller": "GC3EAV57VCU4OP46TQL6UIIRRDYZG74VGVLQ3YODCKQWFPVPX2B2ZTM2",
+        "selling": {
+          "asset_type": "credit_alphanum12",
+          "asset_code": "EURTEST",
+          "asset_issuer": "GBZWNG2FDICVPDRJ7DMZPV3I76W4G6ISSIU2FHO7RKIZAEF5AA5SUUYP"
+        },
+        "buying": {
+          "asset_type": "credit_alphanum12",
+          "asset_code": "INRTEST",
+          "asset_issuer": "GBZWNG2FDICVPDRJ7DMZPV3I76W4G6ISSIU2FHO7RKIZAEF5AA5SUUYP"
+        },
+        "amount": "10000.0000000",
+        "price_r": {
+          "n": 454,
+          "d": 5
+        },
+        "price": "90.8000000",
+        "last_modified_ledger": 896434,
+        "last_modified_time": "2025-10-05T15:50:28Z"
+      }
+    ]
+  }
+}

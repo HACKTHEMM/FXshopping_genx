@@ -15,30 +15,33 @@ interface Currency {
   stellarAsset?: StellarAsset;
 }
 
+// Real testnet issuer - created via scripts/setup-stellar-assets.js
+const TESTNET_ISSUER = 'GAYYZIK2JL6446376R5ZFRPCGNJ4EH2M7TFARTRFVURMW3AMMLU32RUC';
+
 const SUPPORTED_CURRENCIES: Currency[] = [
   { 
     code: 'INR', 
     name: 'Indian Rupee', 
     isFiat: true,
-    stellarAsset: { code: 'INRTEST', issuer: 'DEMO_ISSUER' }
+    stellarAsset: { code: 'INRTEST', issuer: TESTNET_ISSUER }
   },
   { 
     code: 'USD', 
     name: 'US Dollar', 
     isFiat: true,
-    stellarAsset: { code: 'USDTEST', issuer: 'DEMO_ISSUER' }
+    stellarAsset: { code: 'USDTEST', issuer: TESTNET_ISSUER }
   },
   { 
     code: 'EUR', 
     name: 'Euro', 
     isFiat: true,
-    stellarAsset: { code: 'EURTEST', issuer: 'DEMO_ISSUER' }
+    stellarAsset: { code: 'EURTEST', issuer: TESTNET_ISSUER }
   },
   { 
     code: 'PHP', 
     name: 'Philippine Peso', 
     isFiat: true,
-    stellarAsset: { code: 'PHPTEST', issuer: 'DEMO_ISSUER' }
+    stellarAsset: { code: 'PHPTEST', issuer: TESTNET_ISSUER }
   },
   { 
     code: 'XLM', 
