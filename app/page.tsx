@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Transactions from './components/Transactions';
+import Settings from './components/Settings';
+import Login from './components/Login';
 
 const savingsData = [
   { month: 'Jan', amount: 50 },
@@ -21,12 +23,31 @@ const savingsData = [
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('Dashboard');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const maxAmount = Math.max(...savingsData.map(d => d.amount));
+
+  useEffect(() => {
+    // Check if user is authenticated (you can implement proper auth logic here)
+    const authStatus = localStorage.getItem('isAuthenticated');
+    setIsAuthenticated(authStatus === 'true');
+  }, []);
+
+  const handleLogin = () => {
+    localStorage.setItem('isAuthenticated', 'true');
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('isAuthenticated');
+    setIsAuthenticated(false);
+  };
 
   const renderContent = () => {
     switch (activeTab) {
       case 'Transactions':
         return <Transactions />;
+      case 'Settings':
+        return <Settings onTabChange={setActiveTab} />;
       case 'Dashboard':
       default:
         return (
@@ -168,9 +189,13 @@ export default function Dashboard() {
     }
   };
 
+  if (!isAuthenticated) {
+    return <Login onLogin={handleLogin} />;
+  }
+
   return (
     <div className="min-h-screen bg-white">
-      <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
+      <Navbar activeTab={activeTab} onTabChange={setActiveTab} onLogout={handleLogout} />
       {renderContent()}
     </div>
   );
