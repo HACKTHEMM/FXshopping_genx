@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ProviderQuote, RouteFee } from '@/lib/types/route';
+import { fxRateService } from '@/lib/fx-rates';
 
 /**
- * Mock FX Provider Quotes API
+ * FX Provider Quotes API
  * Simulates 3 different off-chain FX providers with varying rates and fees
+ * Uses real-time FX rates from ExchangeRate-API
  * GET /api/quotes?from=INR&to=USD&amount=10000
  */
 
@@ -47,39 +49,8 @@ const MOCK_PROVIDERS: MockProvider[] = [
   },
 ];
 
-// Mock exchange rates (in reality, fetch from external API)
-const MOCK_RATES: Record<string, Record<string, number>> = {
-  INR: {
-    USD: 0.012,
-    EUR: 0.011,
-    PHP: 0.67,
-    XLM: 0.48, // Approximate INR to XLM
-  },
-  USD: {
-    INR: 83.5,
-    EUR: 0.92,
-    PHP: 56.2,
-    XLM: 40.0,
-  },
-  EUR: {
-    INR: 90.8,
-    USD: 1.09,
-    PHP: 61.1,
-    XLM: 43.5,
-  },
-  PHP: {
-    INR: 1.49,
-    USD: 0.018,
-    EUR: 0.016,
-    XLM: 0.71,
-  },
-  XLM: {
-    INR: 2.08,
-    USD: 0.025,
-    EUR: 0.023,
-    PHP: 1.41,
-  },
-};
+// Note: Exchange rates now fetched from real API via fxRateService
+// Fallback rates are maintained in lib/fx-rates.ts
 
 const getSpeedEstimate = (tier: 'fast' | 'medium' | 'slow'): number => {
   switch (tier) {
@@ -112,11 +83,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get base exchange rate
-    const baseRate = MOCK_RATES[from]?.[to];
-    if (!baseRate) {
+    // Get real-time exchange rate from FX API
+    let baseRate: number;
+    let rateTimestamp: Date;
+    let rateSource: string;
+
+    try {
+      const conversionResult = await fxRateService.convert(from, to, 1);
+      baseRate = conversionResult.rate;
+      rateTimestamp = conversionResult.timestamp;
+      rateSource = 'ExchangeRate-API (live)';
+
+      console.log(`📊 FX Rate: ${from} → ${to} = ${baseRate.toFixed(6)} (${rateSource})`);
+    } catch (error: any) {
+      console.error('Failed to fetch FX rate:', error.message);
       return NextResponse.json(
-        { error: `Exchange rate not available for ${from} to ${to}` },
+        { error: `Exchange rate not available for ${from} to ${to}`, details: error.message },
         { status: 400 }
       );
     }
@@ -211,6 +193,8 @@ export async function GET(request: NextRequest) {
       quoteCount: allQuotes.length,
       quotes: allQuotes,
       baseRate,
+      rateSource,
+      rateTimestamp: rateTimestamp.toISOString(),
       from,
       to,
       amount: sendAmount,
