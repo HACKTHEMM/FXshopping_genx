@@ -1,64 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ProviderQuote, RouteFee } from '@/lib/types/route';
 import { fxRateService } from '@/lib/fx-rates';
+import { PROVIDER_FEE_STRUCTURES, calculateProviderFee, getProvidersForCurrencyPair } from '@/lib/provider-fee-structures';
 
 /**
  * FX Provider Quotes API
- * Simulates 3 different off-chain FX providers with varying rates and fees
- * Uses real-time FX rates from ExchangeRate-API
+ * Uses real provider fee structures (Wise, MoneyGram, Western Union, etc.)
+ * with real-time FX rates from ExchangeRate-API
  * GET /api/quotes?from=INR&to=USD&amount=10000
  */
-
-interface MockProvider {
-  id: string;
-  name: string;
-  speedTier: 'fast' | 'medium' | 'slow';
-  baseFeePercent: number;
-  flatFee: number;
-  spreadPercent: number;
-  reliabilityScore: number; // 0-1
-}
-
-const MOCK_PROVIDERS: MockProvider[] = [
-  {
-    id: 'provider-swift',
-    name: 'SwiftFX',
-    speedTier: 'slow',
-    baseFeePercent: 0.5,
-    flatFee: 3.0,
-    spreadPercent: 1.2,
-    reliabilityScore: 0.95,
-  },
-  {
-    id: 'provider-wise',
-    name: 'WiseTransfer',
-    speedTier: 'medium',
-    baseFeePercent: 0.8,
-    flatFee: 2.0,
-    spreadPercent: 0.8,
-    reliabilityScore: 0.92,
-  },
-  {
-    id: 'provider-express',
-    name: 'ExpressRemit',
-    speedTier: 'fast',
-    baseFeePercent: 1.5,
-    flatFee: 5.0,
-    spreadPercent: 1.5,
-    reliabilityScore: 0.88,
-  },
-];
-
-// Note: Exchange rates now fetched from real API via fxRateService
-// Fallback rates are maintained in lib/fx-rates.ts
-
-const getSpeedEstimate = (tier: 'fast' | 'medium' | 'slow'): number => {
-  switch (tier) {
-    case 'fast': return 300; // 5 minutes
-    case 'medium': return 3600; // 1 hour
-    case 'slow': return 86400; // 24 hours
-  }
-};
 
 export async function GET(request: NextRequest) {
   try {
@@ -103,46 +53,54 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Generate quotes from each provider
-    const quotes: ProviderQuote[] = MOCK_PROVIDERS.map((provider) => {
-      // Apply spread to base rate (provider's markup)
-      const spreadMultiplier = 1 - (provider.spreadPercent / 100);
-      const providerRate = baseRate * spreadMultiplier;
+    // Get providers that support this currency pair
+    const supportedProviders = getProvidersForCurrencyPair(from, to);
 
-      // Calculate gross receive amount
-      const grossReceive = sendAmount * providerRate;
+    console.log(`📋 Found ${supportedProviders.length} providers for ${from}→${to}`);
 
-      // Calculate fees
-      const percentageFee = grossReceive * (provider.baseFeePercent / 100);
-      const totalFee = percentageFee + provider.flatFee;
+    // Generate quotes from each real provider
+    const quotes: ProviderQuote[] = supportedProviders.map((provider) => {
+      const feeCalc = calculateProviderFee(provider.id, sendAmount, baseRate);
 
-      // Net receive amount
-      const netReceive = Math.max(0, grossReceive - totalFee);
+      // Build detailed fee array
+      const fees: RouteFee[] = [];
 
-      const fees: RouteFee[] = [
-        {
+      if (feeCalc.flatFee > 0) {
+        fees.push({
+          kind: 'flat_fee',
+          amount: feeCalc.flatFee,
+          asset: to,
+          note: `${provider.name} service charge`,
+        });
+      }
+
+      if (feeCalc.percentageFee > 0) {
+        fees.push({
           kind: 'provider_fee',
-          amount: percentageFee,
+          amount: feeCalc.percentageFee,
           asset: to,
           note: `${provider.baseFeePercent}% processing fee`,
-        },
-        {
-          kind: 'flat_fee',
-          amount: provider.flatFee,
-          asset: to,
-          note: 'Service charge',
-        },
-        {
+        });
+      }
+
+      if (provider.spreadPercent > 0) {
+        fees.push({
           kind: 'spread',
           amount: sendAmount * baseRate * (provider.spreadPercent / 100),
           asset: to,
           note: `${provider.spreadPercent}% exchange rate markup`,
-        },
-      ];
+        });
+      }
 
-      // Add random small variance to make it more realistic
-      const variance = 1 + (Math.random() - 0.5) * 0.02; // ±1%
-      const finalNetReceive = netReceive * variance;
+      // For Stellar on-chain, minimal network fee
+      if (provider.id === 'stellar-onchain') {
+        fees.push({
+          kind: 'network',
+          amount: 0.00001,
+          asset: 'XLM',
+          note: 'Stellar network fee (~100 stroops)',
+        });
+      }
 
       return {
         providerId: provider.id,
@@ -150,40 +108,15 @@ export async function GET(request: NextRequest) {
         sourceCurrency: from,
         destCurrency: to,
         sendAmount,
-        receiveAmount: parseFloat(finalNetReceive.toFixed(2)),
-        exchangeRate: parseFloat(providerRate.toFixed(6)),
+        receiveAmount: parseFloat(feeCalc.receiveAmount.toFixed(2)),
+        exchangeRate: parseFloat(feeCalc.effectiveRate.toFixed(6)),
         fees,
-        estimatedTime: getSpeedEstimate(provider.speedTier),
+        estimatedTime: provider.estimatedTime,
         expiresAt: new Date(Date.now() + 60000), // 1 minute expiry
       };
     });
 
-    // Also add an "on-chain synthetic" baseline (simulated Stellar path)
-    const stellarRate = baseRate * 0.995; // Assume 0.5% better than worst provider
-    const stellarReceive = sendAmount * stellarRate;
-    const networkFee = 0.01; // Minimal Stellar fee
-    
-    const stellarQuote: ProviderQuote = {
-      providerId: 'stellar-onchain',
-      providerName: 'Stellar On-Chain Path',
-      sourceCurrency: from,
-      destCurrency: to,
-      sendAmount,
-      receiveAmount: parseFloat((stellarReceive - networkFee).toFixed(2)),
-      exchangeRate: parseFloat(stellarRate.toFixed(6)),
-      fees: [
-        {
-          kind: 'network',
-          amount: networkFee,
-          asset: to,
-          note: 'Stellar network fee',
-        },
-      ],
-      estimatedTime: 5, // ~5 seconds on Stellar
-      expiresAt: new Date(Date.now() + 30000), // 30 second expiry (more volatile)
-    };
-
-    const allQuotes = [...quotes, stellarQuote];
+    const allQuotes = quotes;
 
     // Sort by net receive (best first)
     allQuotes.sort((a, b) => b.receiveAmount - a.receiveAmount);
