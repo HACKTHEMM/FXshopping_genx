@@ -204,6 +204,3 @@ class AnchorSimulator {
 
 // Export singleton instance
 export const anchorSimulator = new AnchorSimulator();
-
-// Export types for use in other modules
-export type { AnchorSimulation, AnchorFees };
