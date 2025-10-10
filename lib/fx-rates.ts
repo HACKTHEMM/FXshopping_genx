@@ -25,7 +25,10 @@ class FXRateService {
   private cache: Map<string, FXRates> = new Map();
   private cacheExpiry: Map<string, number> = new Map();
   private readonly CACHE_TTL = 60 * 1000; // 60 seconds
-  private readonly API_URL = 'https://api.exchangerate-api.com/v4/latest';
+  private readonly API_KEY = process.env.EXCHANGERATE_API_KEY;
+  private readonly API_URL = this.API_KEY
+    ? `https://v6.exchangerate-api.com/v6/${this.API_KEY}/latest`
+    : 'https://api.exchangerate-api.com/v4/latest';
   private readonly FALLBACK_RATES: Record<string, Record<string, number>> = {
     // Fallback rates if API fails (updated October 2025)
     USD: {
@@ -95,11 +98,15 @@ class FXRateService {
 
       const data = await response.json();
 
+      // Handle both v4 (free) and v6 (with API key) response formats
+      const ratesData = data.conversion_rates || data.rates;
+      const timestamp = data.time_last_update_unix || data.time_last_updated;
+
       const rates: FXRates = {
         base: cacheKey,
-        rates: data.rates,
-        timestamp: new Date(data.time_last_updated * 1000),
-        source: 'ExchangeRate-API',
+        rates: ratesData,
+        timestamp: new Date(timestamp * 1000),
+        source: this.API_KEY ? 'ExchangeRate-API (v6 Premium)' : 'ExchangeRate-API (v4 Free)',
       };
 
       // Update cache

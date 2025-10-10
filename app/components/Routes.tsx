@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { RouteQuote } from '@/lib/types/route';
 import PaymentForm from './PaymentForm';
 import RouteComparison from './RouteComparison';
+import { connectFreighter, signWithFreighter, parseFreighterError } from '@/lib/freighter-integration';
+import { buildPathPaymentTransaction, submitTransaction, hasTrustline, getBalance } from '@/lib/stellar-transaction';
 
 interface RoutesProps {
   publicKey?: string;
@@ -13,6 +15,11 @@ export default function Routes({ publicKey }: RoutesProps) {
   const [routes, setRoutes] = useState<RouteQuote[]>([]);
   const [selectedRoute, setSelectedRoute] = useState<RouteQuote | null>(null);
   const [rateMetadata, setRateMetadata] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [transactionHash, setTransactionHash] = useState<string | null>(null);
+  const [explorerUrl, setExplorerUrl] = useState<string | null>(null);
+  const [connectedPublicKey, setConnectedPublicKey] = useState<string | null>(null);
 
   const handleRoutesFound = (foundRoutes: RouteQuote[], metadata?: any) => {
     setRoutes(foundRoutes);
@@ -28,10 +35,72 @@ export default function Routes({ publicKey }: RoutesProps) {
     }
   };
 
-  const handleSelectRoute = (route: RouteQuote) => {
+  const handleSelectRoute = async (route: RouteQuote) => {
     setSelectedRoute(route);
-    // TODO: Integrate with Freighter wallet for transaction signing
-    alert(`Route selected: ${route.providerName}\nNet Receive: ${route.netReceive} ${route.destinationFiat || route.destAsset.code}\n\nTransaction signing will be implemented in next step.`);
+    setLoading(true);
+    setError(null);
+    setTransactionHash(null);
+    setExplorerUrl(null);
+
+    try {
+      // 1. Connect to Freighter wallet
+      console.log('🔌 Connecting to Freighter wallet...');
+      const userPublicKey = await connectFreighter();
+      setConnectedPublicKey(userPublicKey);
+      console.log('✅ Connected:', userPublicKey.substring(0, 8) + '...');
+
+      // 2. Check if user has trustline for source asset
+      console.log('🔍 Checking trustline for', route.sendAsset.code);
+      const hasSourceTrustline = await hasTrustline(userPublicKey, route.sendAsset);
+      if (!hasSourceTrustline && route.sendAsset.issuer) {
+        throw new Error(
+          `Please add a trustline for ${route.sendAsset.code} in your Freighter wallet first.\n` +
+          `Issuer: ${route.sendAsset.issuer.substring(0, 8)}...`
+        );
+      }
+
+      // 3. Check if user has sufficient balance
+      console.log('💰 Checking balance for', route.sendAsset.code);
+      const balance = await getBalance(userPublicKey, route.sendAsset);
+      const balanceNum = parseFloat(balance);
+      if (balanceNum < route.grossSend) {
+        throw new Error(
+          `Insufficient ${route.sendAsset.code} balance.\n` +
+          `Required: ${route.grossSend.toFixed(2)}\n` +
+          `Available: ${balanceNum.toFixed(2)}`
+        );
+      }
+      console.log('✅ Balance sufficient:', balance, route.sendAsset.code);
+
+      // 4. Build transaction XDR
+      console.log('🏗️ Building transaction...');
+      const xdr = await buildPathPaymentTransaction(userPublicKey, route);
+      console.log('✅ Transaction built');
+
+      // 5. Request signature from Freighter
+      console.log('✍️ Requesting signature from Freighter...');
+      const signedXDR = await signWithFreighter(xdr);
+      console.log('✅ Transaction signed');
+
+      // 6. Submit to Horizon testnet
+      console.log('📡 Submitting transaction to Stellar testnet...');
+      const result = await submitTransaction(signedXDR);
+      console.log('✅ Transaction submitted successfully!');
+      console.log('  Hash:', result.hash);
+      console.log('  Ledger:', result.ledger);
+      console.log('  Explorer:', result.explorerUrl);
+
+      // 7. Update state with success
+      setTransactionHash(result.hash);
+      setExplorerUrl(result.explorerUrl);
+
+    } catch (error: any) {
+      console.error('❌ Transaction error:', error);
+      const friendlyError = parseFreighterError(error);
+      setError(friendlyError);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -68,11 +137,19 @@ export default function Routes({ publicKey }: RoutesProps) {
 
       {/* Selected Route Summary (if any) - Mobile Optimized */}
       {selectedRoute && (
-        <div className="bg-blue-50 border-2 border-blue-500 p-4 md:p-6">
+        <div className={`border-2 p-4 md:p-6 ${
+          transactionHash
+            ? 'bg-green-50 border-green-500'
+            : error
+            ? 'bg-red-50 border-red-500'
+            : 'bg-blue-50 border-blue-500'
+        }`}>
           <h3 className="text-base md:text-lg font-bold text-black mb-3 md:mb-4">
-            ✓ Route Selected: {selectedRoute.providerName}
+            {transactionHash ? '✅ Transaction Successful!' : error ? '❌ Transaction Failed' : '✓ Route Selected:'} {selectedRoute.providerName}
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 text-sm">
+
+          {/* Route Summary */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 text-sm mb-4">
             <div>
               <div className="text-xs text-gray-600 mb-1">Send Amount</div>
               <div className="font-bold text-black text-sm md:text-base">
@@ -98,14 +175,85 @@ export default function Routes({ publicKey }: RoutesProps) {
               </div>
             </div>
           </div>
-          <div className="mt-4 pt-4 border-t border-blue-200">
-            <button
-              className="w-full md:w-auto bg-blue-600 text-white px-6 py-3 text-sm font-medium hover:bg-blue-700 transition-colors"
-              onClick={() => alert('Freighter wallet integration coming next!')}
-            >
-              Sign Transaction with Freighter
-            </button>
-          </div>
+
+          {/* Wallet Connection Info */}
+          {connectedPublicKey && !transactionHash && !error && (
+            <div className="mb-4 p-3 bg-white border border-gray-200 text-xs">
+              <span className="text-gray-600">Connected Wallet: </span>
+              <span className="font-mono font-bold text-black">
+                {connectedPublicKey.substring(0, 8)}...{connectedPublicKey.substring(connectedPublicKey.length - 8)}
+              </span>
+            </div>
+          )}
+
+          {/* Error Display */}
+          {error && (
+            <div className="mb-4 p-4 bg-red-100 border border-red-300 text-sm">
+              <div className="font-bold text-red-800 mb-2">Error:</div>
+              <div className="text-red-700 whitespace-pre-line">{error}</div>
+            </div>
+          )}
+
+          {/* Success Display */}
+          {transactionHash && explorerUrl && (
+            <div className="mb-4 p-4 bg-green-100 border border-green-300 text-sm">
+              <div className="font-bold text-green-800 mb-2">Transaction Hash:</div>
+              <div className="font-mono text-xs text-green-700 mb-3 break-all">
+                {transactionHash}
+              </div>
+              <a
+                href={explorerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block bg-green-600 text-white px-4 py-2 text-sm font-medium hover:bg-green-700 transition-colors"
+              >
+                View on Stellar Explorer →
+              </a>
+            </div>
+          )}
+
+          {/* Loading State */}
+          {loading && (
+            <div className="mb-4 p-4 bg-blue-100 border border-blue-300 text-sm">
+              <div className="flex items-center space-x-3">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                <div className="text-blue-800">
+                  Processing transaction... Please approve in Freighter wallet.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Action Button */}
+          {!transactionHash && !loading && (
+            <div className="pt-4 border-t border-gray-200">
+              <button
+                className="w-full md:w-auto bg-blue-600 text-white px-6 py-3 text-sm font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                onClick={() => handleSelectRoute(selectedRoute)}
+                disabled={loading}
+              >
+                {error ? 'Retry Transaction' : 'Sign Transaction with Freighter'}
+              </button>
+            </div>
+          )}
+
+          {/* New Transaction Button */}
+          {transactionHash && (
+            <div className="pt-4 border-t border-green-200">
+              <button
+                className="w-full md:w-auto bg-green-600 text-white px-6 py-3 text-sm font-medium hover:bg-green-700 transition-colors"
+                onClick={() => {
+                  setSelectedRoute(null);
+                  setTransactionHash(null);
+                  setExplorerUrl(null);
+                  setError(null);
+                  setConnectedPublicKey(null);
+                }}
+              >
+                Start New Transaction
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

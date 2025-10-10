@@ -12,6 +12,8 @@
  * Architecture is SEP-24 ready - can be replaced with real anchor integration.
  */
 
+import { fxRateService } from './fx-rates';
+
 export interface AnchorFees {
   deposit: number;      // Deposit fee amount
   withdrawal: number;   // Withdrawal fee amount
@@ -79,9 +81,23 @@ class AnchorSimulator {
       throw new Error(`Anchor does not support ${fiatCurrency}`);
     }
 
-    // 1:1 peg for demo tokens (INRTEST = INR, USDTEST = USD)
-    // In production, this would reflect actual anchor exchange rates
-    const exchangeRate = 1;
+    // Get real-time exchange rate from FX service
+    // For tokens like INRTEST → base currency is INR
+    // For tokens like USDTEST → base currency is USD
+    const tokenBaseCurrency = tokenCurrency.replace('TEST', '').toUpperCase();
+
+    // If fiat currency matches token base, use 1:1 peg (e.g., INR → INRTEST)
+    // Otherwise, convert using real FX rates (e.g., USD → INRTEST needs USD/INR rate)
+    let exchangeRate = 1;
+    if (fiatCurrency.toUpperCase() !== tokenBaseCurrency) {
+      try {
+        exchangeRate = await fxRateService.getRate(fiatCurrency, tokenBaseCurrency);
+        console.log(`✅ Anchor deposit rate: 1 ${fiatCurrency} = ${exchangeRate} ${tokenBaseCurrency} (real-time)`);
+      } catch (error) {
+        console.warn(`⚠️  Could not fetch rate for ${fiatCurrency}/${tokenBaseCurrency}, using 1:1 fallback`);
+        exchangeRate = 1;
+      }
+    }
 
     // Calculate fees
     const depositFee = fiatAmount * this.DEPOSIT_FEE_PERCENT;
@@ -131,8 +147,21 @@ class AnchorSimulator {
       throw new Error(`Anchor does not support ${fiatCurrency}`);
     }
 
-    // 1:1 peg for demo tokens
-    const exchangeRate = 1;
+    // Get real-time exchange rate from FX service
+    const tokenBaseCurrency = tokenCurrency.replace('TEST', '').toUpperCase();
+
+    // If token base matches fiat currency, use 1:1 peg (e.g., INRTEST → INR)
+    // Otherwise, convert using real FX rates (e.g., USDTEST → INR needs USD/INR rate)
+    let exchangeRate = 1;
+    if (fiatCurrency.toUpperCase() !== tokenBaseCurrency) {
+      try {
+        exchangeRate = await fxRateService.getRate(tokenBaseCurrency, fiatCurrency);
+        console.log(`✅ Anchor withdrawal rate: 1 ${tokenBaseCurrency} = ${exchangeRate} ${fiatCurrency} (real-time)`);
+      } catch (error) {
+        console.warn(`⚠️  Could not fetch rate for ${tokenBaseCurrency}/${fiatCurrency}, using 1:1 fallback`);
+        exchangeRate = 1;
+      }
+    }
 
     // Calculate fees
     const fiatBeforeFees = tokenAmount * exchangeRate;

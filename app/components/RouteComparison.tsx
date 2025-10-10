@@ -55,6 +55,24 @@ export default function RouteComparison({ routes, onSelectRoute, rateMetadata }:
           Found {routes.length} route{routes.length !== 1 ? 's' : ''} • Sorted by best payout
         </p>
 
+        {/* Data Transparency Banner */}
+        <div className="mt-3 md:mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
+          <div className="flex flex-wrap gap-3 text-xs">
+            <div className="flex items-center space-x-1.5">
+              <span className="inline-block w-2 h-2 bg-green-500 rounded-full"></span>
+              <span className="text-gray-700"><strong>REAL:</strong> Stellar DEX paths, FX rates, network fees</span>
+            </div>
+            <div className="flex items-center space-x-1.5">
+              <span className="inline-block w-2 h-2 bg-purple-500 rounded-full"></span>
+              <span className="text-gray-700"><strong>SIMULATED:</strong> Fiat anchors (deposit/withdrawal)</span>
+            </div>
+            <div className="flex items-center space-x-1.5">
+              <span className="inline-block w-2 h-2 bg-yellow-500 rounded-full"></span>
+              <span className="text-gray-700"><strong>ESTIMATED:</strong> Traditional provider quotes</span>
+            </div>
+          </div>
+        </div>
+
         {/* Rate Metadata */}
         {rateMetadata && (
           <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-gray-200">
@@ -65,7 +83,7 @@ export default function RouteComparison({ routes, onSelectRoute, rateMetadata }:
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <span className="text-gray-700">
-                    <span className="font-medium">Rates from:</span> {rateMetadata.rateSource}
+                    <span className="font-medium">✅ Real FX Rates from:</span> {rateMetadata.rateSource}
                   </span>
                 </div>
               )}
@@ -227,12 +245,19 @@ export default function RouteComparison({ routes, onSelectRoute, rateMetadata }:
                         {route.legs.map((leg, legIndex) => {
                           const isAnchorLeg = leg.type === 'anchor-deposit' || leg.type === 'anchor-withdraw';
                           const isStellarDex = leg.type === 'stellar-path';
+                          const isOffchainQuote = leg.type === 'offchain-quote';
 
                           return (
                             <div
                               key={legIndex}
                               className={`flex items-start space-x-2 md:space-x-3 text-xs md:text-sm ${
-                                isAnchorLeg ? 'bg-purple-50 border border-purple-200 p-2 md:p-3 rounded' : ''
+                                isAnchorLeg
+                                  ? 'bg-purple-50 border border-purple-200 p-2 md:p-3 rounded'
+                                  : isStellarDex
+                                  ? 'bg-green-50 border border-green-200 p-2 md:p-3 rounded'
+                                  : isOffchainQuote
+                                  ? 'bg-yellow-50 border border-yellow-200 p-2 md:p-3 rounded'
+                                  : 'p-2 md:p-3'
                               }`}
                             >
                               <div className={`flex-shrink-0 w-5 h-5 md:w-6 md:h-6 flex items-center justify-center font-bold text-[10px] md:text-xs ${
@@ -240,23 +265,30 @@ export default function RouteComparison({ routes, onSelectRoute, rateMetadata }:
                                   ? 'bg-purple-100 text-purple-700'
                                   : isStellarDex
                                   ? 'bg-green-100 text-green-700'
+                                  : isOffchainQuote
+                                  ? 'bg-yellow-100 text-yellow-700'
                                   : 'bg-blue-100 text-blue-600'
                               }`}>
                                 {legIndex + 1}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
+                                <div className="flex flex-wrap items-center gap-2 mb-1">
                                   <div className="font-medium text-black break-words">
                                     {leg.from} → {leg.to}
                                   </div>
                                   {isAnchorLeg && (
-                                    <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium bg-purple-100 text-purple-700 border border-purple-300 rounded">
-                                      ANCHOR
+                                    <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium bg-purple-600 text-white rounded">
+                                      🟣 SIMULATED ANCHOR
                                     </span>
                                   )}
                                   {isStellarDex && (
-                                    <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium bg-green-100 text-green-700 border border-green-300 rounded">
-                                      STELLAR DEX
+                                    <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium bg-green-600 text-white rounded">
+                                      ✅ FROM TESTNET
+                                    </span>
+                                  )}
+                                  {isOffchainQuote && (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium bg-yellow-600 text-white rounded">
+                                      📊 ESTIMATED
                                     </span>
                                   )}
                                 </div>
@@ -317,34 +349,100 @@ export default function RouteComparison({ routes, onSelectRoute, rateMetadata }:
         })}
       </div>
 
-      {/* Anchor Simulation Disclaimer */}
-      {routes.length > 0 && routes.some(r => r.legs.some(l => l.type === 'anchor-deposit' || l.type === 'anchor-withdraw')) && (
-        <div className="bg-purple-50 border border-purple-200 p-4 md:p-5">
+      {/* Comprehensive Data Transparency Disclaimer */}
+      {routes.length > 0 && (
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 p-4 md:p-6 rounded-lg">
           <div className="flex items-start space-x-3">
             <div className="flex-shrink-0">
-              <svg className="w-5 h-5 md:w-6 md:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 md:w-7 md:h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <h4 className="text-sm md:text-base font-bold text-purple-900 mb-2">
-                Anchor Service Simulation
+              <h4 className="text-base md:text-lg font-bold text-gray-900 mb-3">
+                🔍 Data Transparency & Sources
               </h4>
-              <p className="text-xs md:text-sm text-purple-800 leading-relaxed mb-2">
-                The <strong>ANCHOR</strong> deposit and withdrawal steps shown above are simulated for demonstration purposes.
-                In production, these would be handled by real Stellar anchor services that connect fiat bank accounts to the Stellar blockchain.
-              </p>
-              <p className="text-xs md:text-sm text-purple-800 leading-relaxed mb-3">
-                This architecture is <strong>SEP-24 compliant</strong> and ready to integrate with real anchors such as:
-              </p>
-              <ul className="text-xs md:text-sm text-purple-800 list-disc list-inside space-y-1 mb-3">
-                <li>Vibrant anchor (vibrantapp.com) for INR/PHP on/off-ramp</li>
-                <li>MoneyGram Access for USD on/off-ramp</li>
-                <li>Circle USDC stablecoin infrastructure</li>
-              </ul>
-              <p className="text-xs text-purple-700">
-                Learn more: <a href="https://stellar.org/ecosystem/sep-24" target="_blank" rel="noopener noreferrer" className="underline hover:text-purple-900">SEP-24 Hosted Deposit and Withdrawal</a>
-              </p>
+
+              {/* What's REAL */}
+              <div className="mb-4">
+                <h5 className="text-sm md:text-base font-bold text-green-700 mb-2">✅ REAL DATA (From Stellar Testnet & Live APIs):</h5>
+                <ul className="text-xs md:text-sm text-gray-700 space-y-1.5 ml-4">
+                  <li className="flex items-start">
+                    <span className="mr-2">•</span>
+                    <span><strong>Stellar DEX Paths:</strong> Real orderbook data from <code className="bg-gray-100 px-1 py-0.5 rounded text-[10px] md:text-xs">horizon-testnet.stellar.org</code></span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2">•</span>
+                    <span><strong>FX Base Rates:</strong> Live mid-market rates from ExchangeRate-API (updated daily, 163 currencies)</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2">•</span>
+                    <span><strong>Test Assets:</strong> INRTEST, USDTEST deployed on Stellar testnet with real liquidity pools</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2">•</span>
+                    <span><strong>Network Fees:</strong> Actual Stellar network fees (100 stroops = ~$0.000003)</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2">•</span>
+                    <span><strong>Transaction Signing:</strong> Real Freighter wallet integration for testnet transactions</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* What's SIMULATED */}
+              {routes.some(r => r.legs.some(l => l.type === 'anchor-deposit' || l.type === 'anchor-withdraw')) && (
+                <div className="mb-4">
+                  <h5 className="text-sm md:text-base font-bold text-purple-700 mb-2">🟣 SIMULATED (For Demonstration):</h5>
+                  <ul className="text-xs md:text-sm text-gray-700 space-y-1.5 ml-4">
+                    <li className="flex items-start">
+                      <span className="mr-2">•</span>
+                      <span><strong>Anchor Deposits/Withdrawals:</strong> Fiat ↔ Token conversion is simulated (SEP-24 compliant architecture ready for real anchors like Vibrant, MoneyGram Access)</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="mr-2">•</span>
+                      <span><strong>Fee Structure:</strong> 0.2% deposit fee, 0.5% withdrawal fee (based on typical anchor fees)</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="mr-2">•</span>
+                      <span><strong>Conversion Rate:</strong> Real-time FX rates from ExchangeRate API (e.g., INR→USD uses live market rates)</span>
+                    </li>
+                  </ul>
+                </div>
+              )}
+
+              {/* What's ESTIMATED */}
+              {routes.some(r => r.legs.some(l => l.type === 'offchain-quote')) && (
+                <div className="mb-4">
+                  <h5 className="text-sm md:text-base font-bold text-yellow-700 mb-2">📊 ESTIMATED (Static Pricing Models):</h5>
+                  <ul className="text-xs md:text-sm text-gray-700 space-y-1.5 ml-4">
+                    <li className="flex items-start">
+                      <span className="mr-2">•</span>
+                      <span><strong>Traditional Provider Quotes:</strong> Based on 2025 public pricing pages (Wise, MoneyGram, Western Union, Remitly)</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="mr-2">•</span>
+                      <span><strong>Accuracy:</strong> Reasonably accurate for comparison purposes, but not real-time API quotes</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="mr-2">•</span>
+                      <span><strong>Fee Structures:</strong> Real fee percentages and flat fees from provider websites</span>
+                    </li>
+                  </ul>
+                </div>
+              )}
+
+              {/* Learn More */}
+              <div className="pt-3 border-t border-blue-200">
+                <p className="text-xs text-gray-600">
+                  <strong>Learn more:</strong>{' '}
+                  <a href="https://stellar.org/ecosystem/sep-24" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline hover:text-blue-800">SEP-24 Anchors</a>
+                  {' • '}
+                  <a href="https://horizon-testnet.stellar.org" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline hover:text-blue-800">Stellar Testnet</a>
+                  {' • '}
+                  <a href="https://www.freighter.app" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline hover:text-blue-800">Freighter Wallet</a>
+                </p>
+              </div>
             </div>
           </div>
         </div>

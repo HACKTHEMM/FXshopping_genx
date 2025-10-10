@@ -1,0 +1,42 @@
+## Error Type
+Console Error
+
+## Error Message
+Failed to sign transaction: Failed to sign transaction
+
+
+    at signWithFreighter (lib/freighter-integration.ts:134:11)
+    at async handleSelectRoute (app/components/Routes.tsx:82:25)
+
+## Code Frame
+  132 |     }
+  133 |
+> 134 |     throw new Error(`Failed to sign transaction: ${error.message}`);
+      |           ^
+  135 |   }
+  136 | }
+  137 |
+
+Next.js version: 15.5.4 (Turbopack)
+
+
+## Error Type
+Console Error
+
+## Error Message
+Failed to sign transaction
+
+
+    at signWithFreighter (lib/freighter-integration.ts:120:13)
+    at async handleSelectRoute (app/components/Routes.tsx:82:25)
+
+## Code Frame
+  118 |
+  119 |     if ('error' in signResult && signResult.error) {
+> 120 |       throw new Error('Failed to sign transaction');
+      |             ^
+  121 |     }
+  122 |
+  123 |     console.log('✅ Transaction signed successfully');
+
+Next.js version: 15.5.4 (Turbopack)
