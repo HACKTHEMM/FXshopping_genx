@@ -219,6 +219,431 @@ Issue testnet assets to enable real on-chain path discovery and demonstrate actu
 
 ---
 
+### Phase 2.5: Malicious Account Detection & Screening (🔒 HIGH PRIORITY - SECURITY)
+**Priority:** HIGH
+**Timeline:** 1 hour
+**Dependencies:** None (can run parallel with Phase 2)
+
+#### Objectives
+Implement pre-transaction security screening to detect and block malicious wallet addresses before executing payments, creating an immutable security audit trail on the blockchain.
+
+#### Security Flow
+```
+User Selects Route
+  ↓
+Screen Sender Address (Phase 2.5)
+  ↓
+[Malicious? → Block Transaction + Show Warning]
+  ↓
+[Clean? → Proceed to XDR Building (Phase 3)]
+  ↓
+Sign & Submit Transaction
+  ↓
+Contract Attestation (includes security check result)
+```
+
+#### Tasks
+
+##### 2.5.1 Research & Select Screening API
+**Estimated Time:** 15 minutes
+
+**Available Services Comparison:**
+
+| Service | Type | Cost | Coverage | Best For |
+|---------|------|------|----------|----------|
+| **Chainalysis (Free Tier)** | Sanctions screening | FREE | OFAC SDN list only | Basic compliance |
+| **TRM Labs (Free)** | Sanctions screening | FREE | OFAC, EU, UK sanctions | Multi-jurisdiction compliance |
+| **Scorechain (Free)** | Sanctions screening | FREE | All blockchains, global sanctions | Broad blockchain coverage |
+| **Stellar Expert API** | Community reports | FREE | Stellar-specific fraudulent domains/accounts | Stellar ecosystem focus |
+| **Blockaid** | Real-time threat detection | ENTERPRISE (Contact) | Malicious dApps, transactions | Advanced threat detection (Stellar integrated) |
+| **Chainalysis (Full)** | Risk intelligence | ENTERPRISE ($$$$) | Comprehensive risk data, custom thresholds | Enterprise compliance |
+| **Elliptic** | Wallet screening | ENTERPRISE ($$$) | 50+ blockchains, 99% coverage | Large-scale operations |
+
+**Recommended Stack for StellarFX Shopper (MVP):**
+1. **Primary:** TRM Labs Free API or Scorechain Free API (sanctions screening)
+2. **Secondary:** Stellar Expert Directory API (Stellar-specific malicious accounts)
+3. **Post-MVP:** Integrate Blockaid (already in Stellar ecosystem via Freighter/Lobstr)
+
+**Decision Criteria:**
+- [ ] Choose free sanctions screening API (TRM Labs or Scorechain)
+- [ ] Confirm API key registration requirements
+- [ ] Test API response time (< 500ms target)
+- [ ] Review rate limits (expect: 100-1000 requests/day for free tier)
+
+##### 2.5.2 Create Account Screening Helper
+**File:** `lib/account-screening.ts` (new)
+**Estimated Time:** 20 minutes
+
+```typescript
+import crypto from 'crypto';
+
+// Types
+export interface ScreeningResult {
+  address: string;
+  isClean: boolean;
+  riskLevel: 'none' | 'low' | 'medium' | 'high' | 'critical';
+  flags: ScreeningFlag[];
+  provider: string;
+  checkedAt: Date;
+}
+
+export interface ScreeningFlag {
+  type: 'sanctions' | 'fraud' | 'scam' | 'suspicious_activity';
+  source: string;
+  description: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+}
+
+// Main screening function
+export async function screenAddress(address: string): Promise<ScreeningResult> {
+  const results: ScreeningResult = {
+    address,
+    isClean: true,
+    riskLevel: 'none',
+    flags: [],
+    provider: 'multi-source',
+    checkedAt: new Date(),
+  };
+
+  // 1. Check sanctions lists (TRM Labs or Scorechain)
+  const sanctionsResult = await checkSanctionsList(address);
+  if (!sanctionsResult.isClean) {
+    results.isClean = false;
+    results.riskLevel = 'critical';
+    results.flags.push(...sanctionsResult.flags);
+  }
+
+  // 2. Check Stellar Expert directory
+  const stellarExpertResult = await checkStellarExpert(address);
+  if (!stellarExpertResult.isClean) {
+    results.isClean = false;
+    results.riskLevel = stellarExpertResult.riskLevel;
+    results.flags.push(...stellarExpertResult.flags);
+  }
+
+  // 3. Heuristic checks (account age, activity patterns)
+  const heuristicResult = await performHeuristicChecks(address);
+  if (heuristicResult.flags.length > 0) {
+    results.flags.push(...heuristicResult.flags);
+    results.riskLevel = calculateOverallRisk(results.flags);
+  }
+
+  return results;
+}
+
+// Sanctions list checking (TRM Labs example)
+async function checkSanctionsList(address: string): Promise<Partial<ScreeningResult>> {
+  try {
+    const response = await fetch('https://api.trmlabs.com/public/v1/sanctions/screening', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${process.env.TRM_API_KEY}`, // Or use public endpoint
+      },
+      body: JSON.stringify({
+        address: [{ address, chain: 'stellar' }],
+      }),
+    });
+
+    const data = await response.json();
+
+    if (data.isSanctioned) {
+      return {
+        isClean: false,
+        flags: [{
+          type: 'sanctions',
+          source: 'TRM Labs',
+          description: `Address sanctioned by ${data.sanctionedBy.join(', ')}`,
+          severity: 'critical',
+        }],
+      };
+    }
+
+    return { isClean: true, flags: [] };
+  } catch (error) {
+    console.error('Sanctions check failed:', error);
+    // Fail open for MVP (don't block on API errors)
+    return { isClean: true, flags: [] };
+  }
+}
+
+// Stellar Expert directory check
+async function checkStellarExpert(address: string): Promise<Partial<ScreeningResult>> {
+  try {
+    const response = await fetch(
+      `https://api.stellar.expert/explorer/public/directory/blocked-domains`
+    );
+    const blockedList = await response.json();
+
+    // Check if address is in blocked list
+    const isBlocked = blockedList.some((entry: any) =>
+      entry.address === address || entry.domain?.includes(address)
+    );
+
+    if (isBlocked) {
+      return {
+        isClean: false,
+        riskLevel: 'high',
+        flags: [{
+          type: 'fraud',
+          source: 'Stellar Expert Community',
+          description: 'Address reported for fraudulent activity',
+          severity: 'high',
+        }],
+      };
+    }
+
+    return { isClean: true, flags: [] };
+  } catch (error) {
+    console.error('Stellar Expert check failed:', error);
+    return { isClean: true, flags: [] };
+  }
+}
+
+// Heuristic checks using Horizon API
+async function performHeuristicChecks(address: string): Promise<Partial<ScreeningResult>> {
+  try {
+    const response = await fetch(
+      `https://horizon-testnet.stellar.org/accounts/${address}`
+    );
+
+    if (!response.ok) {
+      return { flags: [] };
+    }
+
+    const accountData = await response.json();
+    const flags: ScreeningFlag[] = [];
+
+    // Check 1: Very new account (< 24 hours old)
+    const accountAge = Date.now() - new Date(accountData.last_modified_time).getTime();
+    if (accountAge < 24 * 60 * 60 * 1000) {
+      flags.push({
+        type: 'suspicious_activity',
+        source: 'Heuristic Analysis',
+        description: 'Account created less than 24 hours ago',
+        severity: 'low',
+      });
+    }
+
+    // Check 2: No transaction history
+    if (parseInt(accountData.sequence) < 2) {
+      flags.push({
+        type: 'suspicious_activity',
+        source: 'Heuristic Analysis',
+        description: 'Account has minimal transaction history',
+        severity: 'low',
+      });
+    }
+
+    return { flags };
+  } catch (error) {
+    console.error('Heuristic checks failed:', error);
+    return { flags: [] };
+  }
+}
+
+// Risk level calculation
+function calculateOverallRisk(flags: ScreeningFlag[]): 'none' | 'low' | 'medium' | 'high' | 'critical' {
+  if (flags.some(f => f.severity === 'critical')) return 'critical';
+  if (flags.some(f => f.severity === 'high')) return 'high';
+  if (flags.some(f => f.severity === 'medium')) return 'medium';
+  if (flags.some(f => f.severity === 'low')) return 'low';
+  return 'none';
+}
+
+// Generate screening hash for contract attestation
+export function generateScreeningHash(result: ScreeningResult): string {
+  const data = `${result.address}:${result.isClean}:${result.riskLevel}:${result.checkedAt.toISOString()}`;
+  return crypto.createHash('sha256').update(data).digest('hex');
+}
+```
+
+**Checklist:**
+- [ ] Create file with TypeScript interfaces
+- [ ] Implement multi-source screening logic
+- [ ] Add TRM Labs API integration (or Scorechain)
+- [ ] Add Stellar Expert API integration
+- [ ] Add heuristic checks (account age, activity)
+- [ ] Implement risk level calculation
+- [ ] Add error handling (fail open for MVP)
+- [ ] Test with known sanctioned address (OFAC list)
+
+##### 2.5.3 Create Screening API Endpoint
+**File:** `app/api/security/screen-address/route.ts` (new)
+**Estimated Time:** 10 minutes
+
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+import { screenAddress } from '@/lib/account-screening';
+
+export async function POST(request: NextRequest) {
+  try {
+    const { address } = await request.json();
+
+    if (!address || typeof address !== 'string') {
+      return NextResponse.json(
+        { error: 'Invalid address parameter' },
+        { status: 400 }
+      );
+    }
+
+    // Screen the address
+    const result = await screenAddress(address);
+
+    return NextResponse.json({
+      success: true,
+      screening: result,
+    });
+  } catch (error) {
+    console.error('Address screening error:', error);
+    return NextResponse.json(
+      { error: 'Screening service temporarily unavailable' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+**Checklist:**
+- [ ] Create API route
+- [ ] Validate input address
+- [ ] Call screening helper
+- [ ] Return structured result
+- [ ] Handle errors gracefully
+
+##### 2.5.4 Integrate Screening into RouteComparison Component
+**File:** `app/components/RouteComparison.tsx`
+**Estimated Time:** 15 minutes
+
+**Update the route selection flow:**
+
+```typescript
+const handleSelectRoute = async (route: RouteQuote) => {
+  try {
+    setStatus('screening'); // New status
+
+    // STEP 1: Security screening (NEW)
+    const screeningResponse = await fetch('/api/security/screen-address', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address: publicKey }),
+    });
+
+    const { screening } = await screeningResponse.json();
+
+    // Block transaction if critical risk detected
+    if (!screening.isClean && screening.riskLevel === 'critical') {
+      setError({
+        title: 'Transaction Blocked - Security Risk Detected',
+        message: `Your wallet address has been flagged: ${screening.flags[0].description}`,
+        details: screening.flags,
+      });
+      return; // STOP - do not proceed
+    }
+
+    // Show warning for lower risk levels (but allow to proceed)
+    if (screening.flags.length > 0 && screening.riskLevel !== 'none') {
+      const userConfirmed = await showWarningModal({
+        title: 'Security Warning',
+        message: `${screening.flags.length} potential issue(s) detected:`,
+        flags: screening.flags,
+        riskLevel: screening.riskLevel,
+      });
+
+      if (!userConfirmed) {
+        return; // User chose to cancel
+      }
+    }
+
+    // STEP 2: Continue with normal flow (XDR building, signing, etc.)
+    setStatus('building');
+    const { xdr } = await buildXdr(route);
+
+    setStatus('signing');
+    const signedXdr = await signTx(xdr, 'TESTNET');
+
+    setStatus('submitting');
+    const result = await submitTx(signedXdr);
+
+    // STEP 3: Include screening result in contract attestation (Phase 6)
+    if (contractEnabled) {
+      await registerRoute(routeId, route.netReceive, publicKey, {
+        screeningHash: generateScreeningHash(screening),
+        screeningPassed: screening.isClean,
+        riskLevel: screening.riskLevel,
+      });
+    }
+
+    setStatus('success');
+    showSuccess(result.hash, screening);
+  } catch (error) {
+    handleError(error);
+  }
+};
+```
+
+**UI Changes:**
+- [ ] Add "Verifying security..." loading state
+- [ ] Create security warning modal component
+- [ ] Add risk level badges (🟢 Clean, 🟡 Low Risk, 🟠 Medium, 🔴 High, ⛔ Critical)
+- [ ] Display screening details in transaction confirmation
+- [ ] Show "Security checked" badge after successful screening
+
+##### 2.5.5 Update Soroban Contract Schema (Optional - Phase 6)
+**File:** `contracts/route-registry/src/lib.rs`
+**Estimated Time:** 5 minutes (documentation only for now)
+
+**Add security attestation to RouteData:**
+
+```rust
+// Update RouteData struct to include security info
+pub struct RouteData {
+    pub route_id: BytesN<32>,
+    pub sender: Address,
+    pub expected_net: i128,
+    pub tx_hash: Option<BytesN<32>>,
+    pub actual_net: Option<i128>,
+    pub registered_at: u64,
+    pub finalized_at: Option<u64>,
+
+    // NEW: Security screening data
+    pub screening_hash: Option<BytesN<32>>, // Hash of screening result
+    pub security_checked: bool,              // Was address screened?
+    pub risk_level: u32,                     // 0=none, 1=low, 2=medium, 3=high, 4=critical
+}
+```
+
+**Note:** This is a schema change that would require contract redeployment. For MVP, you can skip this and just log screening results in application state. Include in Phase 6 when deploying the contract.
+
+##### 2.5.6 Testing & Validation
+**Estimated Time:** 5 minutes
+
+**Test Cases:**
+- [ ] Test with clean address (your demo account)
+- [ ] Test with known OFAC-sanctioned address (use test data from TRM Labs docs)
+- [ ] Test with very new account (< 24 hours)
+- [ ] Test with Stellar Expert blocked address (check their directory)
+- [ ] Test API timeout handling
+- [ ] Test with invalid address format
+- [ ] Verify transaction blocks on critical risk
+- [ ] Verify warning modal shows on medium/high risk
+
+**Performance Checks:**
+- [ ] Screening completes in < 1 second
+- [ ] Multiple API failures handled gracefully (fail open)
+- [ ] No sensitive data logged
+
+**Acceptance Criteria:**
+- ✅ Address screening works before XDR building
+- ✅ Critical risk addresses blocked from transacting
+- ✅ Lower risk addresses show warnings but can proceed
+- ✅ Screening result included in transaction metadata
+- ✅ UI clearly communicates security status
+- ✅ < 1 second added to transaction flow
+- ✅ Graceful degradation if screening APIs fail
+
+---
+
 ### Phase 3: Transaction Building & XDR Generation (🚧 PRIORITY)
 **Priority:** HIGH
 **Timeline:** 1.5 hours
