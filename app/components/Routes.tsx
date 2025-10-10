@@ -12,9 +12,11 @@ interface RoutesProps {
 export default function Routes({ publicKey }: RoutesProps) {
   const [routes, setRoutes] = useState<RouteQuote[]>([]);
   const [selectedRoute, setSelectedRoute] = useState<RouteQuote | null>(null);
+  const [rateMetadata, setRateMetadata] = useState<any>(null);
 
-  const handleRoutesFound = (foundRoutes: RouteQuote[]) => {
+  const handleRoutesFound = (foundRoutes: RouteQuote[], metadata?: any) => {
     setRoutes(foundRoutes);
+    setRateMetadata(metadata);
     setSelectedRoute(null); // Reset selection
     
     // Smooth scroll to results on mobile
@@ -56,9 +58,10 @@ export default function Routes({ publicKey }: RoutesProps) {
 
         {/* Right Column: Route Comparison */}
         <div id="route-results" className="lg:col-span-2">
-          <RouteComparison 
+          <RouteComparison
             routes={routes}
             onSelectRoute={handleSelectRoute}
+            rateMetadata={rateMetadata}
           />
         </div>
       </div>

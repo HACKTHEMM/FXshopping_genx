@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { 
-  RouteQuote, 
-  RouteLeg, 
+import {
+  RouteQuote,
+  RouteLeg,
   RouteComparisonResponse,
   RouteFee,
-  StellarAsset 
+  StellarAsset
 } from '@/lib/types/route';
+import { anchorSimulator } from '@/lib/anchor-simulation';
 
 /**
  * Route Comparison & Optimization API
@@ -62,38 +63,57 @@ export async function POST(request: NextRequest) {
     const routes: RouteQuote[] = [];
     const requestId = `req-${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
+    // Store rate metadata from quotes API
+    let rateMetadata: any = null;
+
     // 1. Fetch off-chain provider quotes (if fiat currencies are involved)
     if (sourceFiat && destFiat) {
       try {
         const quotesUrl = `${request.nextUrl.origin}/api/quotes?from=${sourceFiat}&to=${destFiat}&amount=${sendAmount}`;
         const quotesResponse = await fetch(quotesUrl);
-        
+
         if (quotesResponse.ok) {
           const quotesData = await quotesResponse.json();
+
+          // Capture rate metadata
+          rateMetadata = {
+            rateSource: quotesData.rateSource,
+            rateTimestamp: quotesData.rateTimestamp,
+            baseRate: quotesData.baseRate,
+          };
           
           // Convert provider quotes to RouteQuote format
           for (const quote of quotesData.quotes || []) {
             const legs: RouteLeg[] = [];
-            
-            // Simulate deposit leg (fiat → token)
+            let currentAmount = sendAmount;
+
+            // Step 1: Deposit leg (fiat → token) using anchor simulator
             if (sourceFiat !== sourceAsset.code) {
+              const depositSim = await anchorSimulator.simulateDeposit(
+                sourceFiat,
+                sourceAsset.code,
+                currentAmount
+              );
+
               legs.push({
                 type: 'anchor-deposit',
-                from: `${sourceFiat} (Bank)`,
-                to: sourceAsset.code,
+                from: `${sourceFiat} (Bank Account)`,
+                to: `${sourceAsset.code} (Stellar)`,
                 rate: 1, // 1:1 for tokenized fiat
-                estSeconds: 300, // 5 min deposit
+                estSeconds: depositSim.estimatedTime,
                 fees: [{
                   kind: 'anchor_deposit',
-                  amount: 0,
-                  asset: sourceAsset.code,
-                  note: 'Simulated deposit (no fee in demo)',
+                  amount: depositSim.fees.deposit,
+                  asset: sourceFiat,
+                  note: `Anchor deposit fee (${(depositSim.fees.deposit / sendAmount * 100).toFixed(2)}%)`,
                 }],
-                provider: 'Anchor (Simulated)',
+                provider: 'Stellar Anchor (Simulated)',
               });
+
+              currentAmount = depositSim.tokenAmount;
             }
             
-            // Main exchange leg
+            // Step 2: Main exchange leg (token → token or off-chain quote)
             legs.push({
               type: 'offchain-quote',
               from: sourceAsset.code,
@@ -103,33 +123,41 @@ export async function POST(request: NextRequest) {
               fees: quote.fees,
               provider: quote.providerName,
             });
-            
-            // Simulate withdrawal leg (token → fiat)
+
+            currentAmount = quote.receiveAmount;
+
+            // Step 3: Withdrawal leg (token → fiat) using anchor simulator
             if (destFiat !== destAsset.code) {
-              const withdrawalFee = quote.receiveAmount * 0.005; // 0.5% withdrawal fee
+              const withdrawalSim = await anchorSimulator.simulateWithdrawal(
+                destAsset.code,
+                destFiat,
+                currentAmount
+              );
+
               legs.push({
                 type: 'anchor-withdraw',
-                from: destAsset.code,
-                to: `${destFiat} (Bank)`,
+                from: `${destAsset.code} (Stellar)`,
+                to: `${destFiat} (Bank Account)`,
                 rate: 1,
-                estSeconds: 3600, // 1 hour withdrawal
+                estSeconds: withdrawalSim.estimatedTime,
                 fees: [{
                   kind: 'anchor_withdrawal',
-                  amount: withdrawalFee,
+                  amount: withdrawalSim.fees.withdrawal,
                   asset: destFiat,
-                  note: 'Bank withdrawal fee (0.5%)',
+                  note: `Anchor withdrawal fee (${(withdrawalSim.fees.withdrawal / currentAmount * 100).toFixed(2)}%)`,
                 }],
-                provider: 'Anchor (Simulated)',
+                provider: 'Stellar Anchor (Simulated)',
               });
+
+              currentAmount = withdrawalSim.fiatAmount;
             }
 
-            const totalFees = legs.reduce((sum, leg) => 
+            const totalFees = legs.reduce((sum, leg) =>
               sum + leg.fees.reduce((feeSum, fee) => feeSum + fee.amount, 0), 0
             );
 
-            const netReceive = quote.receiveAmount - (legs[legs.length - 1]?.type === 'anchor-withdraw' 
-              ? legs[legs.length - 1].fees[0]?.amount || 0 
-              : 0);
+            // Final amount after all legs and fees
+            const netReceive = currentAmount;
 
             const route: RouteQuote = {
               routeId: `route-${quote.providerId}-${requestId}`,
@@ -192,26 +220,35 @@ export async function POST(request: NextRequest) {
         // Convert Stellar paths to RouteQuote format
         for (const path of (pathsData.paths || []).slice(0, 3)) { // Limit to top 3 paths
           const legs: RouteLeg[] = [];
-          
-          // Step 1: Add deposit leg if converting from fiat to token
+          let currentAmount = sendAmount;
+
+          // Step 1: Deposit leg (fiat → token) using anchor simulator
           if (sourceFiat && sourceFiat !== path.source.code) {
+            const depositSim = await anchorSimulator.simulateDeposit(
+              sourceFiat,
+              path.source.code,
+              currentAmount
+            );
+
             legs.push({
               type: 'anchor-deposit',
-              from: `${sourceFiat} (Bank)`,
-              to: path.source.code,
+              from: `${sourceFiat} (Bank Account)`,
+              to: `${path.source.code} (Stellar)`,
               rate: 1, // 1:1 for tokenized fiat
-              estSeconds: 300, // 5 min deposit
+              estSeconds: depositSim.estimatedTime,
               fees: [{
                 kind: 'anchor_deposit',
-                amount: 0,
-                asset: path.source.code,
-                note: 'Simulated deposit (no fee in demo)',
+                amount: depositSim.fees.deposit,
+                asset: sourceFiat,
+                note: `Anchor deposit fee (${(depositSim.fees.deposit / sendAmount * 100).toFixed(2)}%)`,
               }],
-              provider: 'Anchor (Simulated)',
+              provider: 'Stellar Anchor (Simulated)',
             });
+
+            currentAmount = depositSim.tokenAmount;
           }
           
-          // Step 2: Add on-chain Stellar path legs
+          // Step 2: On-chain Stellar path legs (token swaps on DEX)
           const allAssets = [
             path.source,
             ...path.path,
@@ -221,49 +258,58 @@ export async function POST(request: NextRequest) {
           for (let i = 0; i < allAssets.length - 1; i++) {
             const fromAsset = allAssets[i];
             const toAsset = allAssets[i + 1];
-            
+
             legs.push({
-              type: 'offchain-quote',
+              type: 'stellar-path',
               from: fromAsset.code,
               to: toAsset.code,
               rate: path.effectiveRate, // Use the actual exchange rate from Horizon
               estSeconds: 5, // Stellar confirmation time
               fees: i === 0 ? [{
                 kind: 'network',
-                amount: 0.0100, // 0.01 INR (network fee)
-                asset: toAsset.code,
+                amount: 0.0001, // Stellar network fee (~100 stroops)
+                asset: 'XLM',
                 note: 'Stellar network fee',
               }] : [],
-              provider: 'Stellar On-Chain Path',
+              provider: 'Stellar DEX',
             });
-          }
-          
-          // Step 3: Add withdrawal leg if converting from token to fiat
-          let finalAmount = path.destination.amount;
-          if (destFiat && destFiat !== path.destination.code) {
-            const withdrawalFee = finalAmount * 0.005; // 0.5% withdrawal fee
-            legs.push({
-              type: 'anchor-withdraw',
-              from: path.destination.code,
-              to: `${destFiat} (Bank)`,
-              rate: 1,
-              estSeconds: 3600, // 1 hour withdrawal
-              fees: [{
-                kind: 'anchor_withdrawal',
-                amount: withdrawalFee,
-                asset: destFiat,
-                note: 'Bank withdrawal fee (0.5%)',
-              }],
-              provider: 'Anchor (Simulated)',
-            });
-            finalAmount -= withdrawalFee;
           }
 
-          const totalFees = legs.reduce((sum, leg) => 
+          // Calculate amount after on-chain exchange
+          currentAmount = path.destination.amount;
+
+          // Step 3: Withdrawal leg (token → fiat) using anchor simulator
+          if (destFiat && destFiat !== path.destination.code) {
+            const withdrawalSim = await anchorSimulator.simulateWithdrawal(
+              path.destination.code,
+              destFiat,
+              currentAmount
+            );
+
+            legs.push({
+              type: 'anchor-withdraw',
+              from: `${path.destination.code} (Stellar)`,
+              to: `${destFiat} (Bank Account)`,
+              rate: 1,
+              estSeconds: withdrawalSim.estimatedTime,
+              fees: [{
+                kind: 'anchor_withdrawal',
+                amount: withdrawalSim.fees.withdrawal,
+                asset: destFiat,
+                note: `Anchor withdrawal fee (${(withdrawalSim.fees.withdrawal / currentAmount * 100).toFixed(2)}%)`,
+              }],
+              provider: 'Stellar Anchor (Simulated)',
+            });
+
+            currentAmount = withdrawalSim.fiatAmount;
+          }
+
+          const totalFees = legs.reduce((sum, leg) =>
             sum + leg.fees.reduce((feeSum, fee) => feeSum + fee.amount, 0), 0
           );
-          
-          const netReceive = finalAmount;
+
+          // Final amount after all legs and fees
+          const netReceive = currentAmount;
 
           const route: RouteQuote = {
             routeId: `route-stellar-${path.pathId}-${requestId}`,
@@ -328,6 +374,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       ...response,
+      // Include rate metadata if available
+      rateSource: rateMetadata?.rateSource,
+      rateTimestamp: rateMetadata?.rateTimestamp,
+      baseRate: rateMetadata?.baseRate,
     });
 
   } catch (error: any) {

@@ -3,9 +3,10 @@
  * Defines the data structures for route discovery, comparison, and execution
  */
 
-export type RouteLegType = 
+export type RouteLegType =
   | 'offchain-quote'      // External FX provider quote
   | 'onchain-path'        // Stellar path payment hop
+  | 'stellar-path'        // Stellar DEX path payment
   | 'amm-hop'             // Liquidity pool swap
   | 'anchor-deposit'      // Simulated fiat → token deposit
   | 'anchor-withdraw'     // Simulated token → fiat withdrawal

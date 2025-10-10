@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git checkout:*)",
+      "WebSearch",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "WebFetch(domain:testanchor.stellar.org)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

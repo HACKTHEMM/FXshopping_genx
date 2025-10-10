@@ -6,9 +6,14 @@ import { RouteQuote, RouteLeg } from '@/lib/types/route';
 interface RouteComparisonProps {
   routes: RouteQuote[];
   onSelectRoute?: (route: RouteQuote) => void;
+  rateMetadata?: {
+    rateSource?: string;
+    rateTimestamp?: string;
+    baseRate?: number;
+  };
 }
 
-export default function RouteComparison({ routes, onSelectRoute }: RouteComparisonProps) {
+export default function RouteComparison({ routes, onSelectRoute, rateMetadata }: RouteComparisonProps) {
   const [expandedRouteId, setExpandedRouteId] = useState<string | null>(null);
 
   if (routes.length === 0) {
@@ -49,6 +54,35 @@ export default function RouteComparison({ routes, onSelectRoute }: RouteComparis
         <p className="text-xs md:text-sm text-gray-600">
           Found {routes.length} route{routes.length !== 1 ? 's' : ''} • Sorted by best payout
         </p>
+
+        {/* Rate Metadata */}
+        {rateMetadata && (
+          <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-gray-200">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs md:text-sm">
+              {rateMetadata.rateSource && (
+                <div className="flex items-center space-x-2">
+                  <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-gray-700">
+                    <span className="font-medium">Rates from:</span> {rateMetadata.rateSource}
+                  </span>
+                </div>
+              )}
+              {rateMetadata.rateTimestamp && (
+                <div className="flex items-center space-x-2">
+                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-gray-700">
+                    <span className="font-medium">Updated:</span>{' '}
+                    {new Date(rateMetadata.rateTimestamp).toLocaleString()}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Routes */}
@@ -175,29 +209,56 @@ export default function RouteComparison({ routes, onSelectRoute }: RouteComparis
                     <div>
                       <h4 className="text-xs md:text-sm font-bold text-black mb-2 md:mb-3">Route Steps:</h4>
                       <div className="space-y-2 md:space-y-3">
-                        {route.legs.map((leg, legIndex) => (
-                          <div key={legIndex} className="flex items-start space-x-2 md:space-x-3 text-xs md:text-sm">
-                            <div className="flex-shrink-0 w-5 h-5 md:w-6 md:h-6 bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-[10px] md:text-xs">
-                              {legIndex + 1}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium text-black mb-1 break-words">
-                                {leg.from} → {leg.to}
+                        {route.legs.map((leg, legIndex) => {
+                          const isAnchorLeg = leg.type === 'anchor-deposit' || leg.type === 'anchor-withdraw';
+                          const isStellarDex = leg.type === 'stellar-path';
+
+                          return (
+                            <div
+                              key={legIndex}
+                              className={`flex items-start space-x-2 md:space-x-3 text-xs md:text-sm ${
+                                isAnchorLeg ? 'bg-purple-50 border border-purple-200 p-2 md:p-3 rounded' : ''
+                              }`}
+                            >
+                              <div className={`flex-shrink-0 w-5 h-5 md:w-6 md:h-6 flex items-center justify-center font-bold text-[10px] md:text-xs ${
+                                isAnchorLeg
+                                  ? 'bg-purple-100 text-purple-700'
+                                  : isStellarDex
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-blue-100 text-blue-600'
+                              }`}>
+                                {legIndex + 1}
                               </div>
-                              <div className="text-[10px] md:text-xs text-gray-600 space-y-0.5 md:space-y-1">
-                                <div className="break-words">Type: <span className="font-mono">{leg.type}</span></div>
-                                <div className="break-words">Provider: {leg.provider || 'N/A'}</div>
-                                <div>Rate: {leg.rate.toFixed(6)}</div>
-                                <div>Time: ~{leg.estSeconds}s</div>
-                                {leg.fees.length > 0 && (
-                                  <div className="break-words">
-                                    Fees: {leg.fees.map(f => `${f.amount.toFixed(4)} ${f.asset} (${f.kind})`).join(', ')}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <div className="font-medium text-black break-words">
+                                    {leg.from} → {leg.to}
                                   </div>
-                                )}
+                                  {isAnchorLeg && (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium bg-purple-100 text-purple-700 border border-purple-300 rounded">
+                                      ANCHOR
+                                    </span>
+                                  )}
+                                  {isStellarDex && (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium bg-green-100 text-green-700 border border-green-300 rounded">
+                                      STELLAR DEX
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[10px] md:text-xs text-gray-600 space-y-0.5 md:space-y-1">
+                                  <div className="break-words">Provider: {leg.provider || 'N/A'}</div>
+                                  <div>Rate: {leg.rate.toFixed(6)}</div>
+                                  <div>Time: ~{leg.estSeconds}s ({leg.estSeconds < 60 ? 'instant' : leg.estSeconds < 3600 ? `${Math.floor(leg.estSeconds / 60)}min` : `${Math.floor(leg.estSeconds / 3600)}hr`})</div>
+                                  {leg.fees.length > 0 && (
+                                    <div className="break-words">
+                                      Fees: {leg.fees.map(f => `${f.amount.toFixed(4)} ${f.asset} (${f.note || f.kind})`).join(', ')}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
 
@@ -240,6 +301,39 @@ export default function RouteComparison({ routes, onSelectRoute }: RouteComparis
           );
         })}
       </div>
+
+      {/* Anchor Simulation Disclaimer */}
+      {routes.length > 0 && routes.some(r => r.legs.some(l => l.type === 'anchor-deposit' || l.type === 'anchor-withdraw')) && (
+        <div className="bg-purple-50 border border-purple-200 p-4 md:p-5">
+          <div className="flex items-start space-x-3">
+            <div className="flex-shrink-0">
+              <svg className="w-5 h-5 md:w-6 md:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm md:text-base font-bold text-purple-900 mb-2">
+                Anchor Service Simulation
+              </h4>
+              <p className="text-xs md:text-sm text-purple-800 leading-relaxed mb-2">
+                The <strong>ANCHOR</strong> deposit and withdrawal steps shown above are simulated for demonstration purposes.
+                In production, these would be handled by real Stellar anchor services that connect fiat bank accounts to the Stellar blockchain.
+              </p>
+              <p className="text-xs md:text-sm text-purple-800 leading-relaxed mb-3">
+                This architecture is <strong>SEP-24 compliant</strong> and ready to integrate with real anchors such as:
+              </p>
+              <ul className="text-xs md:text-sm text-purple-800 list-disc list-inside space-y-1 mb-3">
+                <li>Vibrant anchor (vibrantapp.com) for INR/PHP on/off-ramp</li>
+                <li>MoneyGram Access for USD on/off-ramp</li>
+                <li>Circle USDC stablecoin infrastructure</li>
+              </ul>
+              <p className="text-xs text-purple-700">
+                Learn more: <a href="https://stellar.org/ecosystem/sep-24" target="_blank" rel="noopener noreferrer" className="underline hover:text-purple-900">SEP-24 Hosted Deposit and Withdrawal</a>
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

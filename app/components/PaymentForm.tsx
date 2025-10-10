@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { RouteQuote, StellarAsset } from '@/lib/types/route';
 
 interface PaymentFormProps {
-  onRoutesFound?: (routes: RouteQuote[]) => void;
+  onRoutesFound?: (routes: RouteQuote[], metadata?: any) => void;
   publicKey?: string;
 }
 
@@ -97,9 +97,15 @@ export default function PaymentForm({ onRoutesFound, publicKey }: PaymentFormPro
       }
 
       const data = await response.json();
-      
+
       if (data.routes && data.routes.length > 0) {
-        onRoutesFound?.(data.routes);
+        // Pass routes and rate metadata to parent
+        const metadata = {
+          rateSource: data.rateSource,
+          rateTimestamp: data.rateTimestamp,
+          baseRate: data.baseRate,
+        };
+        onRoutesFound?.(data.routes, metadata);
       } else {
         setError('No routes found for this currency pair. Try a different combination.');
       }
