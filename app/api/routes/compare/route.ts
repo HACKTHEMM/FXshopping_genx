@@ -311,6 +311,14 @@ export async function POST(request: NextRequest) {
           // Final amount after all legs and fees
           const netReceive = currentAmount;
 
+          // Extract liquidity warnings from path quality
+          const liquidityWarning = path.quality?.warnings && path.quality.warnings.length > 0
+            ? path.quality.warnings[0]
+            : undefined;
+
+          // Use liquidity depth from path quality for risk calculation
+          const liquidityDepth = path.quality?.liquidityDepth || 50000;
+
           const route: RouteQuote = {
             routeId: `route-stellar-${path.pathId}-${requestId}`,
             sendAsset: sourceAsset,
@@ -322,7 +330,7 @@ export async function POST(request: NextRequest) {
             totalFees,
             netReceive: parseFloat(netReceive.toFixed(2)),
             effectiveRate: netReceive / sendAmount,
-            riskScore: calculateRiskScore(legs.length, 50000, 0.99, 5),
+            riskScore: calculateRiskScore(legs.length, liquidityDepth, 0.99, 5),
             slippagePct: 0.5,
             execution: {
               canBuildXDR: true,
@@ -333,6 +341,10 @@ export async function POST(request: NextRequest) {
             providerName: `Stellar On-Chain Path`,
             references: {
               horizonPathId: path.pathId,
+              liquidityWarning,
+              qualityScore: path.quality?.score,
+              liquidityDepth,
+              spread: path.quality?.spread,
             },
             createdAt: new Date(),
           };

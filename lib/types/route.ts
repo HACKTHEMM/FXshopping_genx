@@ -61,6 +61,10 @@ export interface RouteQuote {
     pathPaymentXDR?: string;        // Pre-built unsigned transaction XDR
     contractRouteHash?: string;     // Hash for contract attestation
     horizonPathId?: string;         // Horizon path payment endpoint reference
+    liquidityWarning?: string;      // Warning message for low liquidity
+    qualityScore?: number;          // Path quality score (0-100)
+    liquidityDepth?: number;        // Available liquidity depth
+    spread?: number;                // Bid-ask spread
   };
   providerName?: string;            // Primary provider name (for UI display)
   savingsVsBaseline?: number;       // Savings compared to worst route (in dest currency)

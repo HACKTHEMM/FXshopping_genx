@@ -5,7 +5,9 @@
       "WebSearch",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "WebFetch(domain:testanchor.stellar.org)"
+      "WebFetch(domain:testanchor.stellar.org)",
+      "Bash(npx tsc:*)",
+      "mcp__ide__getDiagnostics"
     ],
     "deny": [],
     "ask": []

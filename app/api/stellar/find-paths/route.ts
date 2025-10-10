@@ -105,45 +105,93 @@ export async function GET(request: NextRequest) {
     const data = await response.json();
     const paths = data._embedded?.records || [];
 
+    // Helper function to analyze orderbook liquidity depth
+    const analyzeOrderbookDepth = (asks: any[], amountNeeded: number) => {
+      if (!asks || asks.length === 0) {
+        return null;
+      }
+
+      let cumulativeAmount = 0;
+      let weightedRate = 0;
+      let totalCost = 0;
+
+      for (const ask of asks) {
+        const askAmount = parseFloat(ask.amount);
+        const askPrice = parseFloat(ask.price);
+
+        if (cumulativeAmount >= amountNeeded) break;
+
+        const usableAmount = Math.min(askAmount, amountNeeded - cumulativeAmount);
+        const cost = usableAmount / askPrice; // How much base asset needed
+
+        weightedRate += usableAmount * askPrice;
+        totalCost += cost;
+        cumulativeAmount += usableAmount;
+      }
+
+      const hasInsufficientLiquidity = cumulativeAmount < amountNeeded;
+      const avgRate = cumulativeAmount > 0 ? weightedRate / cumulativeAmount : 0;
+      const spread = asks.length > 0 ? parseFloat(asks[0].price) : 0;
+
+      return {
+        availableLiquidity: cumulativeAmount,
+        requiredAmount: amountNeeded,
+        sufficientLiquidity: !hasInsufficientLiquidity,
+        weightedAverageRate: avgRate,
+        spread,
+        ordersUsed: asks.slice(0, Math.min(10, asks.length)).length,
+      };
+    };
+
     // If no paths found via path payment API, try orderbook directly
     if (paths.length === 0 && type === 'send' && source.type !== 'native' && dest.type !== 'native') {
       console.log('No paths found, checking orderbook directly...');
-      
+
       try {
-        const orderbookUrl = `${HORIZON_URL}/order_book?` + 
+        const orderbookUrl = `${HORIZON_URL}/order_book?` +
           `selling_asset_type=${source.code && source.code.length <= 4 ? 'credit_alphanum4' : 'credit_alphanum12'}&` +
           `selling_asset_code=${source.code}&` +
           `selling_asset_issuer=${source.issuer}&` +
           `buying_asset_type=${dest.code && dest.code.length <= 4 ? 'credit_alphanum4' : 'credit_alphanum12'}&` +
           `buying_asset_code=${dest.code}&` +
-          `buying_asset_issuer=${dest.issuer}`;
-        
+          `buying_asset_issuer=${dest.issuer}&` +
+          `limit=200`; // Get more orders for depth analysis
+
         const orderbookResponse = await fetch(orderbookUrl);
-        
+
         if (orderbookResponse.ok) {
           const orderbookData = await orderbookResponse.json();
           const asks = orderbookData.asks || [];
-          
+          const bids = orderbookData.bids || [];
+
           if (asks.length > 0) {
-            // Build a synthetic path from orderbook
-            const bestAsk = asks[0];
-            const rate = parseFloat(bestAsk.price);
-            const destAmount = parseFloat(amount) * rate;
-            
-            const syntheticPath = {
-              source_asset_type: (source.code && source.code.length <= 4) ? 'credit_alphanum4' : 'credit_alphanum12',
-              source_asset_code: source.code || '',
-              source_asset_issuer: source.issuer || '',
-              source_amount: amount,
-              destination_asset_type: (dest.code && dest.code.length <= 4) ? 'credit_alphanum4' : 'credit_alphanum12',
-              destination_asset_code: dest.code || '',
-              destination_asset_issuer: dest.issuer || '',
-              destination_amount: destAmount.toFixed(7),
-              path: [], // Direct trade, no intermediate hops
-            };
-            
-            paths.push(syntheticPath);
-            console.log(`✅ Built synthetic path from orderbook: ${amount} ${source.code} → ${destAmount.toFixed(2)} ${dest.code} @ ${rate}`);
+            const amountNeeded = parseFloat(amount);
+            const depthAnalysis = analyzeOrderbookDepth(asks, amountNeeded);
+
+            if (depthAnalysis) {
+              const destAmount = depthAnalysis.availableLiquidity;
+
+              const syntheticPath = {
+                source_asset_type: (source.code && source.code.length <= 4) ? 'credit_alphanum4' : 'credit_alphanum12',
+                source_asset_code: source.code || '',
+                source_asset_issuer: source.issuer || '',
+                source_amount: amount,
+                destination_asset_type: (dest.code && dest.code.length <= 4) ? 'credit_alphanum4' : 'credit_alphanum12',
+                destination_asset_code: dest.code || '',
+                destination_asset_issuer: dest.issuer || '',
+                destination_amount: destAmount.toFixed(7),
+                path: [], // Direct trade, no intermediate hops
+                liquidityAnalysis: depthAnalysis,
+              };
+
+              paths.push(syntheticPath);
+
+              if (depthAnalysis.sufficientLiquidity) {
+                console.log(`✅ Built synthetic path from orderbook: ${amount} ${source.code} → ${destAmount.toFixed(2)} ${dest.code} @ ${depthAnalysis.weightedAverageRate.toFixed(6)}`);
+              } else {
+                console.log(`⚠️ Insufficient liquidity: Only ${depthAnalysis.availableLiquidity.toFixed(2)} available of ${amountNeeded} needed`);
+              }
+            }
           }
         }
       } catch (orderbookError) {
@@ -151,12 +199,53 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Calculate path quality score
+    const calculatePathQuality = (path: any, hops: number, liquidityAnalysis?: any) => {
+      let score = 100;
+
+      // Penalty for each hop (more hops = more risk)
+      score -= hops * 5;
+
+      // Penalty for low liquidity (if available)
+      if (liquidityAnalysis) {
+        const liquidityDepth = liquidityAnalysis.availableLiquidity;
+
+        if (!liquidityAnalysis.sufficientLiquidity) {
+          score -= 30; // Major penalty for insufficient liquidity
+        } else if (liquidityDepth < 1000) {
+          score -= 20; // Low liquidity
+        } else if (liquidityDepth < 10000) {
+          score -= 10; // Medium liquidity
+        }
+
+        // Penalty for wide spread (if available)
+        if (liquidityAnalysis.spread > 0.05) {
+          score -= 15; // >5% spread is concerning
+        } else if (liquidityAnalysis.spread > 0.02) {
+          score -= 5; // >2% spread
+        }
+      }
+
+      return {
+        score: Math.max(0, Math.min(100, score)),
+        hops,
+        liquidityDepth: liquidityAnalysis?.availableLiquidity || null,
+        spread: liquidityAnalysis?.spread || null,
+        reliability: 0.95, // Default reliability score
+        warnings: liquidityAnalysis && !liquidityAnalysis.sufficientLiquidity
+          ? [`Insufficient liquidity: ${liquidityAnalysis.availableLiquidity.toFixed(2)} of ${liquidityAnalysis.requiredAmount} available`]
+          : [],
+      };
+    };
+
     // Transform and enrich path data
-    const enrichedPaths = paths.map((path: HorizonPathResult, index: number) => {
+    const enrichedPaths = paths.map((path: any, index: number) => {
       const sourceAmount = parseFloat(path.source_amount);
       const destAmount = parseFloat(path.destination_amount);
       const rate = sourceAmount > 0 ? destAmount / sourceAmount : 0;
-      
+      const hops = path.path.length + 1;
+      const quality = calculatePathQuality(path, hops, path.liquidityAnalysis);
+
       return {
         pathId: `path-${index}`,
         source: {
@@ -171,13 +260,15 @@ export async function GET(request: NextRequest) {
           issuer: path.destination_asset_issuer,
           amount: destAmount,
         },
-        path: path.path.map((asset) => ({
+        path: path.path.map((asset: any) => ({
           type: asset.asset_type,
           code: asset.asset_code || 'XLM',
           issuer: asset.asset_issuer,
         })),
         effectiveRate: rate,
-        hops: path.path.length + 1,
+        hops,
+        quality,
+        liquidityAnalysis: path.liquidityAnalysis,
         raw: path,
       };
     });
