@@ -51,21 +51,33 @@ export async function buildPathPaymentTransaction(
       ? new Asset(route.destAsset.code, route.destAsset.issuer)
       : Asset.native();
 
-    // Calculate minimum destination amount (with 2% slippage tolerance)
+    // Calculate minimum destination amount with higher slippage tolerance for testnet liquidity
     // Use onChainReceive if available (amount before withdrawal), otherwise use netReceive
     // This fixes the unit mismatch where netReceive may be in fiat but we need token amount
-    const slippageTolerance = 0.02; // 2%
-    const expectedReceive = route.onChainReceive || route.netReceive;
-    const destMin = (expectedReceive * (1 - slippageTolerance)).toFixed(7);
 
-    console.log('Building path payment transaction:');
-    console.log('  Send:', route.grossSend, route.sendAsset.code);
-    console.log('  Receive (on-chain expected):', expectedReceive, route.destAsset.code);
-    console.log('  Receive (min with 2% slippage):', destMin, route.destAsset.code);
-    if (route.onChainReceive && route.netReceive !== route.onChainReceive) {
-      console.log('  Final amount after withdrawal:', route.netReceive, route.destinationFiat || 'fiat');
+    // Use higher slippage for USD → INR due to poor liquidity in that direction
+    const isUsdToInr = route.sendAsset.code.includes('USD') && route.destAsset.code.includes('INR');
+    const slippageTolerance = isUsdToInr ? 0.20 : 0.10; // 20% for USD→INR, 10% for others
+
+    const expectedReceive = route.onChainReceive || route.netReceive;
+    // Apply slippage and truncate (not round) for more conservative estimate
+    const destMinRaw = expectedReceive * (1 - slippageTolerance);
+    // Truncate to 6 decimal places to avoid rounding issues
+    const destMin = (Math.floor(destMinRaw * 1000000) / 1000000).toFixed(7);
+
+    console.log('🏗️  Building path payment transaction:');
+    console.log('  📤 Send:', route.grossSend, route.sendAsset.code);
+    console.log('  📥 Receive (on-chain expected):', expectedReceive, route.destAsset.code);
+    console.log('  ⚠️  Receive (min with', (slippageTolerance * 100) + '% slippage):', destMin, route.destAsset.code);
+    console.log('  🎯 onChainReceive available:', !!route.onChainReceive);
+    console.log('  📊 netReceive:', route.netReceive);
+    if (route.onChainReceive) {
+      console.log('  💰 onChainReceive:', route.onChainReceive, route.destAsset.code);
     }
-    console.log('  Destination:', destination);
+    if (route.onChainReceive && route.netReceive !== route.onChainReceive) {
+      console.log('  🏦 Final amount after withdrawal:', route.netReceive, route.destinationFiat || 'fiat');
+    }
+    console.log('  📍 Destination:', destination);
 
     // Build transaction
     const transaction = new TransactionBuilder(sourceAccount, {

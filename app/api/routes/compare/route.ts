@@ -205,16 +205,19 @@ export async function POST(request: NextRequest) {
         : 'XLM';
 
       const pathsUrl = `${request.nextUrl.origin}/api/stellar/find-paths?sourceAsset=${sourceAssetStr}&destAsset=${destAssetStr}&amount=${sendAmount}&type=send${destinationAddress ? `&destAccount=${destinationAddress}` : ''}`;
-      
+
+      console.log(`🔍 Querying Horizon paths: ${sendAmount} ${sourceAssetStr} → ${destAssetStr}`);
+
       const pathsResponse = await fetch(pathsUrl);
-      
+
       if (pathsResponse.ok) {
         const pathsData = await pathsResponse.json();
-        
+
         console.log('📊 Stellar paths received:', pathsData.pathCount, 'paths');
         if (pathsData.paths?.length > 0) {
-          console.log('First path destination amount:', pathsData.paths[0].destination.amount);
-          console.log('First path effective rate:', pathsData.paths[0].effectiveRate);
+          console.log('  Source amount from Horizon:', pathsData.paths[0].source.amount, pathsData.paths[0].source.code);
+          console.log('  Dest amount from Horizon:', pathsData.paths[0].destination.amount, pathsData.paths[0].destination.code);
+          console.log('  Effective rate:', pathsData.paths[0].effectiveRate);
         }
         
         // Convert Stellar paths to RouteQuote format
@@ -224,6 +227,7 @@ export async function POST(request: NextRequest) {
 
           // Step 1: Deposit leg (fiat → token) using anchor simulator
           if (sourceFiat && sourceFiat !== path.source.code) {
+            console.log(`  💵 Deposit: ${currentAmount} ${sourceFiat} → ?? ${path.source.code}`);
             const depositSim = await anchorSimulator.simulateDeposit(
               sourceFiat,
               path.source.code,
@@ -246,6 +250,8 @@ export async function POST(request: NextRequest) {
             });
 
             currentAmount = depositSim.tokenAmount;
+            console.log(`  💵 After deposit fee: ${currentAmount} ${path.source.code} (fee: ${depositSim.fees.deposit})`);
+            console.log(`  ⚠️  BUT Horizon path expects: ${path.source.amount} ${path.source.code}`);
           }
           
           // Step 2: On-chain Stellar path legs (token swaps on DEX)
@@ -281,6 +287,8 @@ export async function POST(request: NextRequest) {
           // Store the on-chain receive amount (in tokens, before withdrawal)
           const onChainReceive = currentAmount;
 
+          console.log(`  🔗 On-chain exchange: ${path.source.amount} ${path.source.code} → ${onChainReceive} ${path.destination.code}`);
+
           // Step 3: Withdrawal leg (token → fiat) using anchor simulator
           if (destFiat && destFiat !== path.destination.code) {
             const withdrawalSim = await anchorSimulator.simulateWithdrawal(
@@ -305,6 +313,7 @@ export async function POST(request: NextRequest) {
             });
 
             currentAmount = withdrawalSim.fiatAmount;
+            console.log(`  🏦 After withdrawal: ${onChainReceive} ${path.destination.code} → ${currentAmount} ${destFiat}`);
           }
 
           const totalFees = legs.reduce((sum, leg) =>
@@ -313,6 +322,8 @@ export async function POST(request: NextRequest) {
 
           // Final amount after all legs and fees (may be fiat if withdrawal leg exists)
           const netReceive = currentAmount;
+
+          console.log(`  ✅ Route: ${sendAmount} ${sourceFiat || path.source.code} → ${netReceive} ${destFiat || path.destination.code}`);
 
           // Extract liquidity warnings from path quality
           const liquidityWarning = path.quality?.warnings && path.quality.warnings.length > 0
@@ -335,7 +346,8 @@ export async function POST(request: NextRequest) {
             onChainReceive: parseFloat(onChainReceive.toFixed(7)), // On-chain token amount (for transaction building)
             effectiveRate: netReceive / sendAmount,
             riskScore: calculateRiskScore(legs.length, liquidityDepth, 0.99, 5),
-            slippagePct: 2, // 2% slippage buffer for transaction safety
+            // Higher slippage for USD → INR due to poor liquidity
+            slippagePct: (sourceAsset.code.includes('USD') && destAsset.code.includes('INR')) ? 20 : 10,
             execution: {
               canBuildXDR: true,
               contractAttestationSupported: true,
