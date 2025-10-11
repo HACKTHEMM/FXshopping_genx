@@ -33,6 +33,29 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# contract deployment artifacts
+.contract-id
+*.contract-id
+
+# rust/cargo build artifacts
+target/
+Cargo.lock
+
+# test data and logs
+*.log
+error.txt
+offers.json
+orderbook.json
+real-paths.json
+test-*.json
+
+# IDE and development
+.claude/
+.vscode/
+.idea/
+*.swp
+*.swo
+
 # vercel
 .vercel
 
