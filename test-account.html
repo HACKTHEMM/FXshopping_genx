@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Freighter Account Status</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        button {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #0052a3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            border: 1px solid #bee5eb;
+        }
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        .key {
+            font-family: monospace;
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Freighter Account Status Checker</h1>
+
+        <p>This tool will check if your Freighter wallet account is properly funded on Stellar testnet.</p>
+
+        <button onclick="window.checkAccountFunc()">1. Connect Freighter & Check Account</button>
+        <button onclick="window.fundAccountFunc()" id="fundBtn" disabled>2. Fund with Friendbot</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script type="module">
+        import {
+            isConnected,
+            isAllowed,
+            setAllowed,
+            getUserInfo,
+            getAddress,
+            getNetwork
+        } from 'https://esm.sh/@stellar/freighter-api@1.7.1';
+
+        let currentPublicKey = null;
+        window.checkAccountFunc = checkAccount;
+        window.fundAccountFunc = fundAccount;
+
+        async function checkAccount() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="info">Connecting to Freighter...</div>';
+
+            try {
+                // Check if Freighter is installed
+                const connectionResult = await isConnected();
+                if (!connectionResult.isConnected) {
+                    resultDiv.innerHTML = '<div class="error">❌ Freighter wallet not found. Please install from <a href="https://www.freighter.app/" target="_blank">freighter.app</a></div>';
+                    return;
+                }
+
+                // Request permission
+                const allowedResult = await setAllowed();
+                if (allowedResult.error) {
+                    resultDiv.innerHTML = '<div class="error">❌ Permission denied. Please approve the connection in Freighter.</div>';
+                    return;
+                }
+
+                // Get address
+                const addressResult = await getAddress();
+                if (addressResult.error) {
+                    resultDiv.innerHTML = '<div class="error">❌ Failed to get address: ' + addressResult.error + '</div>';
+                    return;
+                }
+
+                currentPublicKey = addressResult.address;
+
+                resultDiv.innerHTML = '<div class="info">✓ Connected to Freighter<br>Checking account on testnet...</div>';
+
+                // Check network
+                const networkResult = await getNetwork();
+                const network = networkResult.network || 'UNKNOWN';
+
+                // Check account on Horizon
+                const response = await fetch(`https://horizon-testnet.stellar.org/accounts/${currentPublicKey}`);
+
+                if (response.status === 404) {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ Account NOT Found on Testnet</h3>
+                            <p><strong>Your Address:</strong> <span class="key">${currentPublicKey}</span></p>
+                            <p><strong>Network in Freighter:</strong> ${network}</p>
+                            ${network !== 'TESTNET' ? '<p><strong style="color: red;">⚠️ WARNING: You are not on TESTNET! Switch to Testnet in Freighter settings.</strong></p>' : ''}
+                            <p>This account needs to be funded to activate it on the network.</p>
+                            <p><strong>Click the "Fund with Friendbot" button above to get 10,000 test XLM.</strong></p>
+                        </div>
+                    `;
+                    document.getElementById('fundBtn').disabled = false;
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const accountData = await response.json();
+                const xlmBalance = accountData.balances.find(b => b.asset_type === 'native');
+
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <h3>✅ Account Found on Testnet!</h3>
+                        <p><strong>Your Address:</strong> <span class="key">${currentPublicKey}</span></p>
+                        <p><strong>Network in Freighter:</strong> ${network}</p>
+                        <p><strong>XLM Balance:</strong> ${parseFloat(xlmBalance.balance).toFixed(2)} XLM</p>
+                        <p><strong>Account Sequence:</strong> ${accountData.sequence}</p>
+                        <p><strong>Subentries:</strong> ${accountData.subentry_count}</p>
+
+                        <h4>All Balances:</h4>
+                        <pre>${JSON.stringify(accountData.balances, null, 2)}</pre>
+
+                        <p><a href="https://stellar.expert/explorer/testnet/account/${currentPublicKey}" target="_blank">View on Stellar Expert →</a></p>
+
+                        <p style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #c3e6cb;">
+                            <strong>✨ Your account is ready to use!</strong><br>
+                            You can now make transactions in the app.
+                        </p>
+                    </div>
+                `;
+
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Error</h3>
+                        <p><strong>Error Type:</strong> ${error.name}</p>
+                        <p><strong>Error Message:</strong> ${error.message}</p>
+                        <pre>${error.stack || 'No stack trace'}</pre>
+                    </div>
+                `;
+            }
+        }
+
+        async function fundAccount() {
+            if (!currentPublicKey) {
+                alert('Please connect Freighter first!');
+                return;
+            }
+
+            const resultDiv = document.getElementById('result');
+            const fundBtn = document.getElementById('fundBtn');
+
+            resultDiv.innerHTML = '<div class="info">Requesting funds from Friendbot...<br>This may take a few seconds...</div>';
+            fundBtn.disabled = true;
+
+            try {
+                const response = await fetch(`https://friendbot.stellar.org?addr=${currentPublicKey}`);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Friendbot failed: ${errorText}`);
+                }
+
+                const result = await response.json();
+
+                resultDiv.innerHTML = '<div class="success">✓ Friendbot request sent!<br>Waiting for transaction to settle...</div>';
+
+                // Wait 3 seconds for transaction to settle
+                await new Promise(resolve => setTimeout(resolve, 3000));
+
+                // Check account again
+                await checkAccount();
+
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Friendbot Error</h3>
+                        <p>${error.message}</p>
+                        <p><strong>Try manually:</strong></p>
+                        <ol>
+                            <li>Visit <a href="https://friendbot.stellar.org" target="_blank">friendbot.stellar.org</a></li>
+                            <li>Enter your address: <span class="key">${currentPublicKey}</span></li>
+                            <li>Click "Get test network lumens"</li>
+                            <li>Wait 10 seconds</li>
+                            <li>Click "Check Account" again</li>
+                        </ol>
+                    </div>
+                `;
+                fundBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

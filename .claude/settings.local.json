@@ -11,7 +11,17 @@
       "Bash(npm install:*)",
       "Bash(cat:*)",
       "Bash(node scripts/send-test-tokens.js:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(rustc:*)",
+      "Bash(cargo:*)",
+      "Bash(rustup target list:*)",
+      "Bash(stellar network add:*)",
+      "Bash(stellar keys generate:*)",
+      "Bash(stellar keys address:*)",
+      "Bash(stellar contract init:*)",
+      "Bash(stellar contract build:*)",
+      "Bash(npm run dev:*)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": []

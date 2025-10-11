@@ -1,0 +1,74 @@
+react-dom-client.development.js:25630 Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+api/anchor/balance?publicKey=GAONAOFF6BB7VSLKK34I3RS4EVV6KLSNUIJQSM56D7AUMUA37HRBWX6C:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+balance:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+turbopack-hot-reloader-common.ts:43 [Fast Refresh] rebuilding
+report-hmr-latency.ts:26 [Fast Refresh] done in 128ms
+Routes.tsx:156 🔌 Connecting to Freighter wallet...
+freighter-integration.ts:62 ✅ Connected to Freighter: GAONAOFF...
+Routes.tsx:159 ✅ Connected: GAONAOFF...
+Routes.tsx:162 🔍 Checking account status on Stellar testnet...
+account-activation.ts:28 🔍 Checking account status for: GAONAOFF...
+account-activation.ts:38 ✅ Account found on network!
+account-activation.ts:39   Balance: 10006.0000000 XLM
+account-activation.ts:40   Sequence: 3840366482554880
+Routes.tsx:174 ✅ Account is activated
+Routes.tsx:175   Balance: 10006.0000000 XLM
+Routes.tsx:178 🔍 Checking trustline for source asset: INRTEST
+Routes.tsx:231 ❌ Transaction error: Error: MISSING_TRUSTLINE_SOURCE:INRTEST:GAYYZIK2JL6446376R5ZFRPCGNJ4EH2M7TFARTRFVURMW3AMMLU32RUC
+    at handleSelectRoute (Routes.tsx:181:15)
+error @ intercept-console-error.ts:44
+handleSelectRoute @ Routes.tsx:231
+await in handleSelectRoute
+onClick @ RouteComparison.tsx:350
+executeDispatch @ react-dom-client.development.js:16970
+runWithFiberInDEV @ react-dom-client.development.js:871
+processDispatchQueue @ react-dom-client.development.js:17020
+(anonymous) @ react-dom-client.development.js:17621
+batchedUpdates$1 @ react-dom-client.development.js:3311
+dispatchEventForPluginEventSystem @ react-dom-client.development.js:17174
+dispatchEvent @ react-dom-client.development.js:21357
+dispatchDiscreteEvent @ react-dom-client.development.js:21325
+<button>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:323
+(anonymous) @ RouteComparison.tsx:349
+RouteComparison @ RouteComparison.tsx:108
+react_stack_bottom_frame @ react-dom-client.development.js:23583
+renderWithHooksAgain @ react-dom-client.development.js:6892
+renderWithHooks @ react-dom-client.development.js:6804
+updateFunctionComponent @ react-dom-client.development.js:9246
+beginWork @ react-dom-client.development.js:10857
+runWithFiberInDEV @ react-dom-client.development.js:871
+performUnitOfWork @ react-dom-client.development.js:15726
+workLoopSync @ react-dom-client.development.js:15546
+renderRootSync @ react-dom-client.development.js:15526
+performWorkOnRoot @ react-dom-client.development.js:14990
+performWorkOnRootViaSchedulerTask @ react-dom-client.development.js:16815
+performWorkUntilDeadline @ scheduler.development.js:45
+Routes.tsx:232 🔍 Error message: MISSING_TRUSTLINE_SOURCE:INRTEST:GAYYZIK2JL6446376R5ZFRPCGNJ4EH2M7TFARTRFVURMW3AMMLU32RUC
+Routes.tsx:236 ✅ Detected MISSING_TRUSTLINE error
+Routes.tsx:242 📊 Trustline details: {type: 'source', code: 'INRTEST', issuer: 'GAYYZIK2JL6446376R5ZFRPCGNJ4EH2M7TFARTRFVURMW3AMMLU32RUC'}
+Routes.tsx:250 💾 Setting missingTrustline state: {asset: {…}, type: 'source'}
+Routes.tsx:258 📝 Setting error message: Missing trustline for INRTEST.
+
+Click "Establish Trustline" below to add this asset to your wallet.
+
+Issuer: GAYYZIK2...
+Routes.tsx:261 ✅ State updates queued - button should appear after re-render
+Routes.tsx:395 🎨 Rendering error section
+Routes.tsx:396   - error: Missing trustline for INRTEST.
+
+Click "Establish Trustline" below to add this asset to your wallet.
+
+Issuer: GAYYZIK2...
+Routes.tsx:397   - missingTrustline: {asset: {…}, type: 'source'}
+Routes.tsx:398   - accountNotActivated: false
+Routes.tsx:399   - Trustline button condition: true
+Routes.tsx:395 🎨 Rendering error section
+Routes.tsx:396   - error: Missing trustline for INRTEST.
+
+Click "Establish Trustline" below to add this asset to your wallet.
+
+Issuer: GAYYZIK2...
+Routes.tsx:397   - missingTrustline: {asset: {…}, type: 'source'}
+Routes.tsx:398   - accountNotActivated: false
+Routes.tsx:399   - Trustline button condition: true
