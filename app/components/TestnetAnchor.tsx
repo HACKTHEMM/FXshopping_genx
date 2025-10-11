@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { connectFreighter, signWithFreighter } from '@/lib/freighter-integration';
+import { connectFreighter, signWithFreighter, isFreighterInstalled } from '@/lib/freighter-integration';
 import * as StellarSdk from '@stellar/stellar-sdk';
+import { getAddress } from '@stellar/freighter-api';
 
 interface AssetStatus {
   assetCode: string;
@@ -15,6 +16,7 @@ interface AssetStatus {
 interface BalanceResponse {
   success: boolean;
   accountExists: boolean;
+  needsXlmFunding?: boolean;
   userPublicKey?: string;
   xlmBalance?: number;
   assets?: AssetStatus[];
@@ -34,13 +36,35 @@ export default function TestnetAnchor() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Connect wallet on mount
+  // Check for existing wallet connection on mount
   useEffect(() => {
-    connectWallet();
+    checkExistingConnection();
   }, []);
+
+  const checkExistingConnection = async () => {
+    try {
+      // First check if Freighter is installed
+      const installed = await isFreighterInstalled();
+      if (!installed) {
+        return; // Don't auto-connect if not installed
+      }
+
+      // Try to get existing address without prompting
+      const addressResult = await getAddress();
+      if (!('error' in addressResult) && addressResult.address) {
+        // Wallet is already connected
+        setPublicKey(addressResult.address);
+        await checkBalance(addressResult.address);
+      }
+    } catch (err) {
+      // Wallet not connected yet, that's OK
+      console.log('No existing wallet connection');
+    }
+  };
 
   const connectWallet = async () => {
     try {
+      // This will prompt for connection if not already connected
       const key = await connectFreighter();
       setPublicKey(key);
       await checkBalance(key);
@@ -211,12 +235,16 @@ export default function TestnetAnchor() {
         </div>
       )}
 
-      {/* Account Not Found */}
-      {balanceData && !balanceData.accountExists && (
+      {/* Account Not Found or Needs XLM Funding */}
+      {balanceData && (!balanceData.accountExists || balanceData.needsXlmFunding) && (
         <div className="mb-4 p-4 bg-yellow-50 border border-yellow-300 rounded">
-          <div className="text-sm font-medium text-yellow-800 mb-2">Account Not Found</div>
+          <div className="text-sm font-medium text-yellow-800 mb-2">
+            {!balanceData.accountExists ? 'Account Not Found' : 'Insufficient XLM'}
+          </div>
           <div className="text-xs text-yellow-700 mb-3">
-            Your account needs to be funded with XLM first using Friendbot.
+            {!balanceData.accountExists
+              ? 'Your account needs to be funded with XLM first using Friendbot.'
+              : `Your account has only ${balanceData.xlmBalance?.toFixed(2)} XLM. You need at least 2 XLM for operations.`}
           </div>
           <a
             href={balanceData.friendbotUrl}
@@ -229,8 +257,8 @@ export default function TestnetAnchor() {
         </div>
       )}
 
-      {/* Trustlines Status */}
-      {balanceData?.assets && (
+      {/* Trustlines Status - Only show if account exists and has enough XLM */}
+      {balanceData?.assets && balanceData.accountExists && !balanceData.needsXlmFunding && (
         <div className="space-y-3">
           <div className="text-sm font-bold text-black">Asset Status:</div>
 
@@ -275,8 +303,8 @@ export default function TestnetAnchor() {
         </div>
       )}
 
-      {/* Add Trustlines Button */}
-      {balanceData?.status && !balanceData.status.hasAllTrustlines && (
+      {/* Add Trustlines Button - Only show if account exists and has enough XLM */}
+      {balanceData?.status && !balanceData.status.hasAllTrustlines && balanceData.accountExists && !balanceData.needsXlmFunding && (
         <button
           onClick={addTrustlines}
           disabled={loading}

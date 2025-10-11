@@ -78,14 +78,37 @@ export async function GET(request: NextRequest) {
       (b: any) => b.asset_type === 'native'
     );
 
+    const xlmBalanceValue = xlmBalance ? parseFloat(xlmBalance.balance) : 0;
     const hasAllTrustlines = assetStatus.every(a => a.hasTrustline);
     const needsFunding = assetStatus.every(a => a.balance === 0);
+
+    // Check if account needs more XLM (less than 2 XLM is considered too low for operations)
+    const needsXlmFunding = xlmBalanceValue < 2;
+
+    // If account exists but has insufficient XLM, suggest friendbot
+    if (needsXlmFunding) {
+      return NextResponse.json({
+        success: true,
+        accountExists: true,
+        needsXlmFunding: true,
+        userPublicKey,
+        xlmBalance: xlmBalanceValue,
+        assets: assetStatus,
+        status: {
+          hasAllTrustlines,
+          needsFunding,
+          readyForDemo: hasAllTrustlines && !needsFunding && !needsXlmFunding,
+        },
+        message: `Account has insufficient XLM (${xlmBalanceValue.toFixed(2)} XLM). Need at least 2 XLM for operations. Please fund via Friendbot.`,
+        friendbotUrl: `https://friendbot.stellar.org?addr=${userPublicKey}`,
+      });
+    }
 
     return NextResponse.json({
       success: true,
       accountExists: true,
       userPublicKey,
-      xlmBalance: xlmBalance ? parseFloat(xlmBalance.balance) : 0,
+      xlmBalance: xlmBalanceValue,
       assets: assetStatus,
       status: {
         hasAllTrustlines,
