@@ -20,6 +20,19 @@ const HORIZON_URL = 'https://horizon-testnet.stellar.org';
 const NETWORK_PASSPHRASE = Networks.TESTNET;
 const { Server } = Horizon;
 
+// Helper function to validate Stellar addresses
+function isValidStellarAddress(address: string): boolean {
+  return address.startsWith('G') && address.length === 56;
+}
+
+// Type definitions for Stellar balance objects
+interface StellarBalance {
+  asset_type?: string;
+  asset_code?: string;
+  asset_issuer?: string;
+  balance?: string;
+}
+
 /**
  * Build a path payment transaction for the selected route
  *
@@ -42,7 +55,7 @@ export async function buildPathPaymentTransaction(
     // Determine destination (self if not specified)
     const destination = destinationAddress || sourcePublicKey;
 
-    // Build assets
+    // Build assets with validation
     const sendAsset = route.sendAsset.issuer
       ? new Asset(route.sendAsset.code, route.sendAsset.issuer)
       : Asset.native();
@@ -50,6 +63,14 @@ export async function buildPathPaymentTransaction(
     const destAsset = route.destAsset.issuer
       ? new Asset(route.destAsset.code, route.destAsset.issuer)
       : Asset.native();
+
+    // Validate assets before proceeding
+    if (route.sendAsset.issuer && !isValidStellarAddress(route.sendAsset.issuer)) {
+      throw new Error(`Invalid send asset issuer: ${route.sendAsset.issuer}`);
+    }
+    if (route.destAsset.issuer && !isValidStellarAddress(route.destAsset.issuer)) {
+      throw new Error(`Invalid destination asset issuer: ${route.destAsset.issuer}`);
+    }
 
     // Calculate minimum destination amount with reasonable slippage tolerance
     // Use onChainReceive if available (amount before withdrawal), otherwise use netReceive
@@ -145,9 +166,10 @@ export async function buildPathPaymentTransaction(
       return xdr;
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error building transaction:', error);
-    throw new Error(`Failed to build transaction: ${error.message}`);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to build transaction: ${errorMessage}`);
   }
 }
 
@@ -187,14 +209,22 @@ export async function submitTransaction(
       explorerUrl,
     };
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error submitting transaction:', error);
 
     // Parse Horizon error
-    let errorMessage = error.message;
-    if (error.response?.data?.extras?.result_codes) {
-      const codes = error.response.data.extras.result_codes;
-      errorMessage = `Transaction failed: ${codes.transaction} (${codes.operations?.join(', ')})`;
+    let errorMessage = 'Unknown error';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+    
+    // Check if it's a Horizon API error with result codes
+    if (error && typeof error === 'object' && 'response' in error) {
+      const horizonError = error as { response?: { data?: { extras?: { result_codes?: { transaction?: string; operations?: string[] } } } } };
+      if (horizonError.response?.data?.extras?.result_codes) {
+        const codes = horizonError.response.data.extras.result_codes;
+        errorMessage = `Transaction failed: ${codes.transaction} (${codes.operations?.join(', ')})`;
+      }
     }
 
     throw new Error(errorMessage);
@@ -221,9 +251,11 @@ export async function hasTrustline(
     const account = await server.loadAccount(publicKey);
 
     const balance = account.balances.find(
-      (b: any) =>
-        b.asset_code === asset.code &&
-        b.asset_issuer === asset.issuer
+      (b) =>
+        'asset_code' in b &&
+        'asset_issuer' in b &&
+        (b as StellarBalance).asset_code === asset.code &&
+        (b as StellarBalance).asset_issuer === asset.issuer
     );
 
     return !!balance;
@@ -251,17 +283,21 @@ export async function getBalance(
 
     if (!asset.issuer) {
       // Native XLM
-      const xlmBalance = account.balances.find((b: any) => b.asset_type === 'native');
-      return xlmBalance?.balance || '0';
+      const xlmBalance = account.balances.find(
+        (b) => 'asset_type' in b && (b as StellarBalance).asset_type === 'native'
+      );
+      return (xlmBalance as StellarBalance)?.balance || '0';
     }
 
     const balance = account.balances.find(
-      (b: any) =>
-        b.asset_code === asset.code &&
-        b.asset_issuer === asset.issuer
+      (b) =>
+        'asset_code' in b &&
+        'asset_issuer' in b &&
+        (b as StellarBalance).asset_code === asset.code &&
+        (b as StellarBalance).asset_issuer === asset.issuer
     );
 
-    return balance?.balance || '0';
+    return (balance as StellarBalance)?.balance || '0';
 
   } catch (error) {
     console.error('Error getting balance:', error);

@@ -4,7 +4,11 @@ import { useState } from 'react';
 import { RouteQuote, StellarAsset } from '@/lib/types/route';
 
 interface PaymentFormProps {
-  onRoutesFound?: (routes: RouteQuote[], metadata?: any) => void;
+  onRoutesFound?: (routes: RouteQuote[], metadata?: {
+    rateSource?: string;
+    rateTimestamp?: string;
+    baseRate?: number;
+  }) => void;
   publicKey?: string;
 }
 
@@ -15,33 +19,42 @@ interface Currency {
   stellarAsset?: StellarAsset;
 }
 
-// Real testnet issuer - created via scripts/setup-stellar-assets.js
-const TESTNET_ISSUER = 'GAYYZIK2JL6446376R5ZFRPCGNJ4EH2M7TFARTRFVURMW3AMMLU32RUC';
+// Use a known testnet issuer or create a fallback
+// For demo purposes, we'll use a well-known testnet issuer or fall back to native XLM
+const TESTNET_ISSUER = process.env.NEXT_PUBLIC_STELLAR_TESTNET_ISSUER || 'GAYYZIK2JL6446376R5ZFRPCGNJ4EH2M7TFARTRFVURMW3AMMLU32RUC';
+
+// Validate issuer address format (Stellar addresses start with 'G' and are 56 characters)
+function isValidStellarAddress(address: string): boolean {
+  return address.startsWith('G') && address.length === 56;
+}
+
+// Use a fallback issuer if the hardcoded one is invalid
+const VALID_ISSUER = isValidStellarAddress(TESTNET_ISSUER) ? TESTNET_ISSUER : undefined;
 
 const SUPPORTED_CURRENCIES: Currency[] = [
   { 
     code: 'INR', 
     name: 'Indian Rupee', 
     isFiat: true,
-    stellarAsset: { code: 'INRTEST', issuer: TESTNET_ISSUER }
+    stellarAsset: VALID_ISSUER ? { code: 'INRTEST', issuer: VALID_ISSUER } : { code: 'XLM' }
   },
   { 
     code: 'USD', 
     name: 'US Dollar', 
     isFiat: true,
-    stellarAsset: { code: 'USDTEST', issuer: TESTNET_ISSUER }
+    stellarAsset: VALID_ISSUER ? { code: 'USDTEST', issuer: VALID_ISSUER } : { code: 'XLM' }
   },
   { 
     code: 'EUR', 
     name: 'Euro', 
     isFiat: true,
-    stellarAsset: { code: 'EURTEST', issuer: TESTNET_ISSUER }
+    stellarAsset: VALID_ISSUER ? { code: 'EURTEST', issuer: VALID_ISSUER } : { code: 'XLM' }
   },
   { 
     code: 'PHP', 
     name: 'Philippine Peso', 
     isFiat: true,
-    stellarAsset: { code: 'PHPTEST', issuer: TESTNET_ISSUER }
+    stellarAsset: VALID_ISSUER ? { code: 'PHPTEST', issuer: VALID_ISSUER } : { code: 'XLM' }
   },
   { 
     code: 'XLM', 
@@ -110,9 +123,9 @@ export default function PaymentForm({ onRoutesFound, publicKey }: PaymentFormPro
         setError('No routes found for this currency pair. Try a different combination.');
       }
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Payment form error:', err);
-      setError(err.message || 'An error occurred while searching for routes');
+      setError(err instanceof Error ? err.message : 'An error occurred while searching for routes');
     } finally {
       setLoading(false);
     }
@@ -263,6 +276,14 @@ export default function PaymentForm({ onRoutesFound, publicKey }: PaymentFormPro
           All path discovery, settlement, and contract attestations run on Stellar testnet. 
           Architecture is anchor-ready.
         </p>
+        {!VALID_ISSUER && (
+          <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
+            <p className="text-xs text-yellow-800">
+              <strong>⚠️ Testnet Setup Required:</strong> The issuer address is invalid. 
+              Run <code className="bg-yellow-100 px-1">node scripts/create-testnet-issuer.js</code> to create a valid testnet issuer.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
