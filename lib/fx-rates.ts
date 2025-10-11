@@ -33,9 +33,16 @@ class FXRateService {
   /**
    * Truncate rate to 3 decimal places (not round)
    * Example: 0.0119 → 0.011 (truncate), not 0.012 (round)
+   * For rates > 1, use more precision to avoid significant loss
    */
   private truncateRate(rate: number): number {
-    return Math.floor(rate * 1000) / 1000;
+    if (rate >= 1) {
+      // For rates >= 1 (like USD→INR = 88.7), use 1 decimal place
+      return Math.floor(rate * 10) / 10;
+    } else {
+      // For rates < 1 (like INR→USD = 0.011), use 3 decimal places
+      return Math.floor(rate * 1000) / 1000;
+    }
   }
 
   private readonly FALLBACK_RATES: Record<string, Record<string, number>> = {

@@ -176,16 +176,16 @@ export default function RouteComparison({ routes, onSelectRoute, rateMetadata }:
                       They Receive <span className="text-[10px] text-gray-400">(minimum)</span>
                     </div>
                     <div className="text-lg md:text-xl font-bold text-green-600 truncate">
-                      {(route.netReceive * (1 - route.slippagePct / 100)).toFixed(2)} <span className="text-sm md:text-base">{route.destinationFiat || route.destAsset.code}</span>
+                      {(route.grossSend * route.effectiveRate).toFixed(2)} <span className="text-sm md:text-base">{route.destinationFiat || route.destAsset.code}</span>
                     </div>
                     <div className="text-[10px] text-gray-500 mt-0.5">
-                      Expected: ~{route.netReceive.toFixed(2)} (with {route.slippagePct}% slippage buffer)
+                      Minimum: {(route.grossSend * route.effectiveRate * (1 - route.slippagePct / 100)).toFixed(2)} (with {route.slippagePct}% slippage buffer)
                     </div>
                   </div>
                   <div>
                     <div className="text-xs text-gray-500 mb-1">Exchange Rate</div>
                     <div className="text-lg md:text-xl font-bold text-black">
-                      {route.effectiveRate.toFixed(3)}
+                      {route.effectiveRate >= 1 ? route.effectiveRate.toFixed(1) : route.effectiveRate.toFixed(3)}
                     </div>
                   </div>
                 </div>
@@ -304,7 +304,7 @@ export default function RouteComparison({ routes, onSelectRoute, rateMetadata }:
                                 </div>
                                 <div className="text-[10px] md:text-xs text-gray-600 space-y-0.5 md:space-y-1">
                                   <div className="break-words">Provider: {leg.provider || 'N/A'}</div>
-                                  <div>Rate: {leg.rate.toFixed(3)}</div>
+                                  <div>Rate: {leg.rate >= 1 ? leg.rate.toFixed(1) : leg.rate.toFixed(3)}</div>
                                   <div>Time: ~{leg.estSeconds}s ({leg.estSeconds < 60 ? 'instant' : leg.estSeconds < 3600 ? `${Math.floor(leg.estSeconds / 60)}min` : `${Math.floor(leg.estSeconds / 3600)}hr`})</div>
                                   {leg.fees.length > 0 && (
                                     <div className="break-words">

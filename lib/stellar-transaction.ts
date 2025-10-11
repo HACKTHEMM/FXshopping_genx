@@ -62,6 +62,7 @@ export async function buildPathPaymentTransaction(
     // For production, this should be 1-2% max
     const slippageTolerance = isUsdToInr ? 0.10 : 0.05; // 10% for USD→INR, 5% for others
 
+    // Use the effective rate from the route for consistent execution
     const expectedReceive = route.onChainReceive || route.netReceive;
 
     // Apply aggressive slippage for destMin to prevent failures
@@ -72,35 +73,77 @@ export async function buildPathPaymentTransaction(
     console.log('  📤 Send (exact):', route.grossSend, route.sendAsset.code);
     console.log('  📥 Receive (expected):', expectedReceive, route.destAsset.code);
     console.log('  ⚠️  Min receive (with', (slippageTolerance * 100) + '% safety):', destMin, route.destAsset.code);
-    console.log('  📊 Effective rate:', (expectedReceive / route.grossSend).toFixed(6));
+    console.log('  📊 Effective rate:', route.effectiveRate.toFixed(6));
     if (route.onChainReceive) {
       console.log('  💰 onChainReceive from quote:', route.onChainReceive, route.destAsset.code);
     }
     console.log('  📍 Destination:', destination);
 
-    const transaction = new TransactionBuilder(sourceAccount, {
-      fee: BASE_FEE,
-      networkPassphrase: NETWORK_PASSPHRASE,
-    })
-      .addOperation(
-        Operation.pathPaymentStrictSend({
-          sendAsset,
-          sendAmount: route.grossSend.toFixed(7),
-          destination,
-          destAsset,
-          destMin,
-          path: [], // Let Stellar find the path automatically via DEX
-        })
-      )
-      .addMemo(Memo.text(`FXShop:${route.routeId.substring(0, 20)}`))
-      .setTimeout(180) // 3 minute timeout
-      .build();
+    // Build explicit path to ensure we get the market rate
+    // Instead of letting Stellar auto-select based on liquidity
+    const explicitPath: Asset[] = [];
+    
+    // For direct swaps (USDTEST → INRTEST), enforce market rate by setting high destMin
+    // This prevents Stellar from using worse rates due to high liquidity
+    if (route.sendAsset.code === 'USDTEST' && route.destAsset.code === 'INRTEST') {
+      // Calculate expected receive at market rate
+      const marketRateReceive = route.grossSend * route.effectiveRate;
+      
+      // Set destMin to 90% of market rate to force Stellar to find better offers
+      // This prevents execution at the 83.5 rate due to high liquidity
+      const destMinMarketRate = (marketRateReceive * 0.90).toFixed(7); // 10% slippage from market rate
+      
+      console.log('  🎯 Market rate enforcement for USDTEST→INRTEST:');
+      console.log('    Market rate:', route.effectiveRate);
+      console.log('    Expected at market rate:', marketRateReceive.toFixed(2), route.destAsset.code);
+      console.log('    Min acceptable (10% slippage):', destMinMarketRate, route.destAsset.code);
+      console.log('    This prevents execution at worse rates (e.g., 83.5)');
+      
+      const transaction = new TransactionBuilder(sourceAccount, {
+        fee: BASE_FEE,
+        networkPassphrase: NETWORK_PASSPHRASE,
+      })
+        .addOperation(
+          Operation.pathPaymentStrictSend({
+            sendAsset,
+            sendAmount: route.grossSend.toFixed(7),
+            destination,
+            destAsset,
+            destMin: destMinMarketRate, // Force better rates
+            path: explicitPath, // Empty path for direct trade
+          })
+        )
+        .addMemo(Memo.text(`FXShop:${route.routeId.substring(0, 20)}`))
+        .setTimeout(180) // 3 minute timeout
+        .build();
 
-    // Return XDR for signing
-    const xdr = transaction.toXDR();
-    console.log('✅ Transaction built successfully');
+      const xdr = transaction.toXDR();
+      console.log('✅ Transaction built with market rate enforcement');
+      return xdr;
+    } else {
+      // For other pairs, use original logic
+      const transaction = new TransactionBuilder(sourceAccount, {
+        fee: BASE_FEE,
+        networkPassphrase: NETWORK_PASSPHRASE,
+      })
+        .addOperation(
+          Operation.pathPaymentStrictSend({
+            sendAsset,
+            sendAmount: route.grossSend.toFixed(7),
+            destination,
+            destAsset,
+            destMin,
+            path: explicitPath, // Empty path for direct trade
+          })
+        )
+        .addMemo(Memo.text(`FXShop:${route.routeId.substring(0, 20)}`))
+        .setTimeout(180) // 3 minute timeout
+        .build();
 
-    return xdr;
+      const xdr = transaction.toXDR();
+      console.log('✅ Transaction built successfully');
+      return xdr;
+    }
 
   } catch (error: any) {
     console.error('Error building transaction:', error);

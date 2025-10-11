@@ -163,7 +163,7 @@ export default function Routes({ publicKey }: RoutesProps) {
             <div>
               <div className="text-xs text-gray-600 mb-1">Receive Amount</div>
               <div className="font-bold text-green-600 text-sm md:text-base">
-                {selectedRoute.netReceive.toLocaleString()} {selectedRoute.destinationFiat || selectedRoute.destAsset.code}
+                {(selectedRoute.grossSend * selectedRoute.effectiveRate).toLocaleString()} {selectedRoute.destinationFiat || selectedRoute.destAsset.code}
               </div>
             </div>
             <div>
