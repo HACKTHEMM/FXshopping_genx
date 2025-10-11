@@ -53,11 +53,11 @@ export async function ensureContractDeployed(): Promise<DeploymentResult> {
 
     const result = await response.json();
     return result;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Failed to check contract deployment:', error);
     return {
       success: false,
-      error: error.message || 'Failed to check contract deployment'
+      error: (error as Error).message || 'Failed to check contract deployment'
     };
   }
 }
@@ -75,14 +75,39 @@ export async function registerRouteWithContract(
     console.log(`   Expected Receive: ${route.grossSend * route.effectiveRate}`);
     console.log(`   User: ${userAddress}`);
 
-    // Calculate expected receive amount
-    const expectedReceive = Math.floor(route.grossSend * route.effectiveRate * 10000000); // Convert to stroops
+    // Calculate expected receive amount in stroops
+    const expectedReceive = Math.floor(route.grossSend * route.effectiveRate * 10000000);
 
-    // For now, we'll simulate the contract call
-    // In production, this would use Soroban SDK for contract invocation
+    // Make real contract call
+    const response = await fetch('/api/contract/invoke', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        method: 'register_route',
+        params: [
+          route.routeId,
+          expectedReceive,
+          userAddress
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Contract invocation failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || 'Contract registration failed');
+    }
+
     const attestationHash = `attestation_${route.routeId}_${Date.now()}`;
     
     console.log(`   ✅ Route registered with attestation hash: ${attestationHash}`);
+    console.log(`   📊 Contract result:`, result.result);
     
     return attestationHash;
   } catch (error) {
@@ -108,11 +133,43 @@ export async function finalizeRouteWithContract(
     // Extract route ID from attestation hash
     const routeId = attestationHash.split('_')[1];
     
-    // For now, we'll simulate the contract call
-    // In production, this would use Soroban SDK for contract invocation
-    const variance = 0; // Simulated variance
+    // Convert actual receive amount to stroops
+    const actualReceiveStroops = Math.floor(actualReceive * 10000000);
     
-    console.log(`   ✅ Route finalized with variance: ${variance}`);
+    // Convert transaction hash to BytesN format
+    const txHashBytes = txHash; // Soroban CLI will handle the conversion
+    
+    // Make real contract call
+    const response = await fetch('/api/contract/invoke', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        method: 'finalize_route',
+        params: [
+          routeId,
+          { type: 'bytes32', value: txHashBytes },
+          actualReceiveStroops
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Contract invocation failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || 'Contract finalization failed');
+    }
+
+    // Parse variance from result (should be a number in stroops)
+    const variance = parseInt(result.result) || 0;
+    
+    console.log(`   ✅ Route finalized with variance: ${variance} stroops`);
+    console.log(`   📊 Contract result:`, result.result);
     
     return variance;
   } catch (error) {
@@ -128,17 +185,34 @@ export async function getRouteFromContract(routeId: string): Promise<ContractRou
   try {
     console.log(`🔍 Querying route data for: ${routeId}`);
 
-    // For now, we'll simulate the contract call
-    // In production, this would use Soroban SDK for contract query
-    const routeData: ContractRouteData = {
-      route_id: routeId,
-      expected_net: 0,
-      sender: '',
-      registered_at: Date.now(),
-      status: 'registered'
-    };
+    // Make real contract call
+    const response = await fetch('/api/contract/invoke', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        method: 'get_route',
+        params: [routeId]
+      })
+    });
 
-    console.log(`   ✅ Route data retrieved`);
+    if (!response.ok) {
+      throw new Error(`Contract query failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    if (!result.success) {
+      console.warn('Route not found in contract:', result.error);
+      return null;
+    }
+
+    // Parse the contract response
+    // The result should be a JSON string containing the route data
+    const routeData = JSON.parse(result.result);
+    
+    console.log(`   ✅ Route data retrieved:`, routeData);
     
     return routeData;
   } catch (error) {

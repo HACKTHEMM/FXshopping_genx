@@ -7,7 +7,7 @@ import RouteComparison from './RouteComparison';
 import TestnetAnchor from './TestnetAnchor';
 import { connectFreighter, signWithFreighter, parseFreighterError } from '@/lib/freighter-integration';
 import { buildPathPaymentTransaction, submitTransaction, hasTrustline, getBalance } from '@/lib/stellar-transaction';
-import { registerRouteWithContract, finalizeRouteWithContract, getContractExplorerUrl, isContractDeployed, ensureContractDeployed } from '@/lib/contract-client';
+import { registerRouteWithContract, finalizeRouteWithContract, getContractExplorerUrl, ensureContractDeployed, getRouteFromContract } from '@/lib/contract-client';
 
 interface RoutesProps {
   publicKey?: string;
@@ -16,7 +16,7 @@ interface RoutesProps {
 export default function Routes({ publicKey }: RoutesProps) {
   const [routes, setRoutes] = useState<RouteQuote[]>([]);
   const [selectedRoute, setSelectedRoute] = useState<RouteQuote | null>(null);
-  const [rateMetadata, setRateMetadata] = useState<any>(null);
+  const [rateMetadata, setRateMetadata] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
@@ -25,8 +25,10 @@ export default function Routes({ publicKey }: RoutesProps) {
   const [attestationHash, setAttestationHash] = useState<string | null>(null);
   const [contractExplorerUrl, setContractExplorerUrl] = useState<string | null>(null);
   const [contractDeploymentStatus, setContractDeploymentStatus] = useState<string | null>(null);
+  const [linkedRouteId, setLinkedRouteId] = useState<string | null>(null);
+  const [contractRouteData, setContractRouteData] = useState<Record<string, unknown> | null>(null);
 
-  const handleRoutesFound = (foundRoutes: RouteQuote[], metadata?: any) => {
+  const handleRoutesFound = (foundRoutes: RouteQuote[], metadata?: Record<string, unknown>) => {
     setRoutes(foundRoutes);
     setRateMetadata(metadata);
     setSelectedRoute(null); // Reset selection
@@ -117,23 +119,37 @@ export default function Routes({ publicKey }: RoutesProps) {
       console.log('  Ledger:', result.ledger);
       console.log('  Explorer:', result.explorerUrl);
 
-      // 7. Finalize route with smart contract (if attestation exists)
-      if (attestationHash) {
-        try {
-          console.log('✅ Finalizing route attestation...');
-          const actualReceive = route.grossSend * route.effectiveRate;
-          await finalizeRouteWithContract(attestationHash, actualReceive, result.hash);
-          console.log('✅ Route attestation finalized');
-        } catch (contractError) {
-          console.warn('⚠️ Smart contract finalization failed:', contractError);
-        }
-      }
+          // 7. Finalize route with smart contract (if attestation exists)
+          if (attestationHash) {
+            try {
+              console.log('✅ Finalizing route attestation...');
+              const actualReceive = route.grossSend * route.effectiveRate;
+              await finalizeRouteWithContract(attestationHash, actualReceive, result.hash);
+              console.log('✅ Route attestation finalized');
+              
+              // Set the linked route ID for display
+              const routeId = attestationHash.split('_')[1];
+              setLinkedRouteId(routeId);
+              console.log('🔗 Transaction linked to route:', routeId);
+              
+              // Query the contract to get the actual route data
+              try {
+                const routeData = await getRouteFromContract(routeId);
+                setContractRouteData(routeData);
+                console.log('📊 Contract route data:', routeData);
+              } catch (queryError) {
+                console.warn('⚠️ Failed to query route data from contract:', queryError);
+              }
+            } catch (contractError) {
+              console.warn('⚠️ Smart contract finalization failed:', contractError);
+            }
+          }
 
       // 8. Update state with success
       setTransactionHash(result.hash);
       setExplorerUrl(result.explorerUrl);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Transaction error:', error);
       const friendlyError = parseFreighterError(error);
       setError(friendlyError);
@@ -272,6 +288,34 @@ export default function Routes({ publicKey }: RoutesProps) {
                   <div className="text-blue-600 mt-1">
                     ✅ Route registered and finalized on-chain
                   </div>
+                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded">
+                    <div className="font-bold text-green-800 mb-1">🔗 Transaction ↔ Route Link:</div>
+                    <div className="text-green-700 text-xs">
+                      <div>Transaction Hash: <span className="font-mono">{transactionHash}</span></div>
+                      <div>Route ID: <span className="font-mono">{linkedRouteId || attestationHash.split('_')[1]}</span></div>
+                      <div className="text-green-600 mt-1">
+                        ✅ Route registered and finalized in smart contract
+                      </div>
+                      {contractRouteData && (
+                        <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded">
+                          <div className="font-bold text-blue-800 mb-1 text-xs">📊 Contract Data:</div>
+                          <div className="text-blue-700 text-xs">
+                            <div>Status: <span className="font-mono">{contractRouteData.status}</span></div>
+                            <div>Expected: <span className="font-mono">{(contractRouteData.expected_net / 10000000).toFixed(2)}</span></div>
+                            {contractRouteData.actual_net && (
+                              <div>Actual: <span className="font-mono">{(contractRouteData.actual_net / 10000000).toFixed(2)}</span></div>
+                            )}
+                            {contractRouteData.variance && (
+                              <div>Variance: <span className="font-mono">{(contractRouteData.variance / 10000000).toFixed(2)}</span></div>
+                            )}
+                            {contractRouteData.tx_hash && (
+                              <div>TX Hash: <span className="font-mono">{contractRouteData.tx_hash}</span></div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -323,6 +367,11 @@ export default function Routes({ publicKey }: RoutesProps) {
                   setExplorerUrl(null);
                   setError(null);
                   setConnectedPublicKey(null);
+                  setAttestationHash(null);
+                  setContractExplorerUrl(null);
+                  setContractDeploymentStatus(null);
+                  setLinkedRouteId(null);
+                  setContractRouteData(null);
                 }}
               >
                 Start New Transaction
