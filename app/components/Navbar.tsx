@@ -30,7 +30,7 @@ export default function Navbar({ activeTab, onTabChange, onLogout }: NavbarProps
           
           {/* Desktop Navigation - Hidden on mobile */}
           <nav className="hidden md:flex space-x-4 lg:space-x-8">
-            {['Dashboard', 'Routes', 'Transactions', 'Settings'].map((tab) => (
+            {['Dashboard', 'Routes', 'Contracts', 'Transactions', 'Settings'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => handleTabChange(tab)}

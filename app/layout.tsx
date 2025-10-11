@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { Inter } from "next/font/google";
 import "./globals.css";
 
 const valve = localFont({
@@ -13,12 +12,6 @@ const valve = localFont({
     { path: "../fonts/PPValve-PlainExtrabold.otf", weight: "800", style: "normal" },
     { path: "../fonts/PPValve-PlainExtraboldItalic.otf", weight: "800", style: "italic" },
   ],
-  display: "swap",
-});
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
   display: "swap",
 });
 
@@ -35,7 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${valve.variable} ${inter.variable} antialiased`}
+        className={`${valve.variable} antialiased font-sans`}
       >
         {children}
       </body>

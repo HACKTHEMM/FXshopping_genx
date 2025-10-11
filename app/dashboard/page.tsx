@@ -6,6 +6,7 @@ import Navbar from '../components/Navbar';
 import Transactions from '../components/Transactions';
 import Settings from '../components/Settings';
 import Routes from '../components/Routes';
+import ContractBuilder from '../components/ContractBuilder';
 
 // Calculate balance history from payment operations
 const calculateBalanceHistory = async (publicKey: string) => {
@@ -18,7 +19,7 @@ const calculateBalanceHistory = async (publicKey: string) => {
     // Get current balance
     const accountResponse = await fetch(`https://horizon-testnet.stellar.org/accounts/${publicKey}`);
     const accountData = await accountResponse.json();
-    const currentXLM = accountData.balances.find((b: any) => b.asset_type === 'native')?.balance || '0';
+    const currentXLM = accountData.balances.find((b: { asset_type: string; balance?: string }) => b.asset_type === 'native')?.balance || '0';
     
     let balance = parseFloat(currentXLM);
     const history: { month: string; amount: number }[] = [];
@@ -117,11 +118,6 @@ export default function Dashboard() {
     fetchBalances();
   }, [publicKey]);
 
-  const handleLogin = (key: string) => {
-    localStorage.setItem('stellarAddress', key);
-    setPublicKey(key);
-  };
-
   const handleLogout = () => {
     localStorage.removeItem('stellarAddress');
     localStorage.removeItem('publicKey');
@@ -136,6 +132,14 @@ export default function Dashboard() {
           <div className="h-full overflow-auto px-4 md:px-6 lg:px-8 py-4 md:py-6">
             <div className="max-w-[1400px] mx-auto">
               <Routes publicKey={publicKey || undefined} />
+            </div>
+          </div>
+        );
+      case 'Contracts':
+        return (
+          <div className="h-full overflow-auto px-4 md:px-6 lg:px-8 py-4 md:py-6">
+            <div className="max-w-[1400px] mx-auto">
+              <ContractBuilder publicKey={publicKey || undefined} />
             </div>
           </div>
         );
