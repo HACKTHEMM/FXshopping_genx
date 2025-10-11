@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
                 quote.providerId === 'stellar-onchain' ? 0.99 : 0.9,
                 quote.estimatedTime
               ),
-              slippagePct: 0.5, // 0.5% slippage buffer
+              slippagePct: 2, // 2% slippage buffer for transaction safety
               execution: {
                 canBuildXDR: quote.providerId === 'stellar-onchain',
                 contractAttestationSupported: true,
@@ -331,7 +331,7 @@ export async function POST(request: NextRequest) {
             netReceive: parseFloat(netReceive.toFixed(2)),
             effectiveRate: netReceive / sendAmount,
             riskScore: calculateRiskScore(legs.length, liquidityDepth, 0.99, 5),
-            slippagePct: 0.5,
+            slippagePct: 2, // 2% slippage buffer for transaction safety
             execution: {
               canBuildXDR: true,
               contractAttestationSupported: true,

@@ -51,13 +51,15 @@ export async function buildPathPaymentTransaction(
       ? new Asset(route.destAsset.code, route.destAsset.issuer)
       : Asset.native();
 
-    // Calculate minimum destination amount (with 1% slippage tolerance)
-    const slippageTolerance = 0.01; // 1%
+    // Calculate minimum destination amount (with 2% slippage tolerance)
+    // Increased from 1% to 2% to handle less liquid pairs and reverse direction trades
+    const slippageTolerance = 0.02; // 2%
     const destMin = (route.netReceive * (1 - slippageTolerance)).toFixed(7);
 
     console.log('Building path payment transaction:');
     console.log('  Send:', route.grossSend, route.sendAsset.code);
-    console.log('  Receive (min):', destMin, route.destAsset.code);
+    console.log('  Receive (expected):', route.netReceive, route.destAsset.code);
+    console.log('  Receive (min with 2% slippage):', destMin, route.destAsset.code);
     console.log('  Destination:', destination);
 
     // Build transaction
