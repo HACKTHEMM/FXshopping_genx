@@ -116,20 +116,46 @@ debug-assertions = true
         contractDir
       );
 
-      // Optimize the WASM
       const wasmPath = path.join(contractDir, 'target', 'wasm32-unknown-unknown', 'release', `${safeName}.wasm`);
-      console.log(`Optimizing WASM at: ${wasmPath}`);
       
-      await execCommand(
-        `stellar contract optimize --wasm "${wasmPath}"`
-      );
+      // Try to optimize the WASM, but fall back to unoptimized if it fails
+      let wasmToDeployPath = wasmPath;
+      let optimizationNote = '';
+      
+      try {
+        console.log(`Attempting to optimize WASM at: ${wasmPath}`);
+        
+        // Try method 1: Use stellar contract optimize with bulk memory flag
+        try {
+          await execCommand(
+            `stellar contract optimize --wasm "${wasmPath}" --wasm-out "${wasmPath.replace('.wasm', '.optimized.wasm')}"`
+          );
+          wasmToDeployPath = wasmPath.replace('.wasm', '.optimized.wasm');
+          optimizationNote = '✓ Optimized with Stellar CLI';
+          console.log(`Successfully optimized with stellar CLI`);
+        } catch {
+          console.log('Stellar CLI optimization not available, trying wasm-opt...');
+          
+          // Try method 2: Use wasm-opt directly
+          await execCommand(
+            `wasm-opt "${wasmPath}" -O3 --enable-bulk-memory -o "${wasmPath.replace('.wasm', '.optimized.wasm')}"`
+          );
+          wasmToDeployPath = wasmPath.replace('.wasm', '.optimized.wasm');
+          optimizationNote = '✓ Optimized with wasm-opt';
+          console.log(`Successfully optimized with wasm-opt`);
+        }
+        
+      } catch {
+        console.log('⚠️  Optimization tools not available - deploying unoptimized WASM (this is OK for development)');
+        optimizationNote = '⚠️  Deployed unoptimized - works fine for testing! Install wasm-opt or stellar CLI for optimized builds.';
+        // Continue with unoptimized WASM - it will work fine for testing
+      }
 
       // Deploy to testnet
-      const optimizedWasmPath = wasmPath.replace('.wasm', '.optimized.wasm');
-      console.log(`Deploying contract from: ${optimizedWasmPath}`);
+      console.log(`Deploying contract from: ${wasmToDeployPath}`);
       
       const { stdout: deployOutput } = await execCommand(
-        `stellar contract deploy --wasm "${optimizedWasmPath}" --network testnet --source-account testnet`
+        `stellar contract deploy --wasm "${wasmToDeployPath}" --network testnet --source-account testnet`
       );
 
       const contractId = deployOutput.trim();
@@ -140,6 +166,7 @@ debug-assertions = true
         contractName: safeName,
         network: 'testnet',
         message: 'Contract compiled and deployed successfully',
+        optimizationStatus: optimizationNote,
         buildOutput: buildOutput.substring(0, 500),
         timestamp: new Date().toISOString()
       });
