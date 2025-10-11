@@ -65,6 +65,9 @@ export interface RouteQuote {
     qualityScore?: number;          // Path quality score (0-100)
     liquidityDepth?: number;        // Available liquidity depth
     spread?: number;                // Bid-ask spread
+    note?: string;                  // Additional notes (e.g., "Mainnet only")
+    deepLink?: string;              // External link (e.g., Binance P2P)
+    isMainnetOnly?: boolean;        // Whether this route requires mainnet
   };
   providerName?: string;            // Primary provider name (for UI display)
   savingsVsBaseline?: number;       // Savings compared to worst route (in dest currency)

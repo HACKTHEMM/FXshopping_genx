@@ -362,7 +362,7 @@ export async function POST(request: NextRequest) {
     // 4. Calculate savings vs baseline (worst route)
     const bestRoute = routes[0];
     const worstRoute = routes[routes.length - 1];
-    
+
     if (bestRoute && worstRoute) {
       routes.forEach(route => {
         route.savingsVsBaseline = route.netReceive - worstRoute.netReceive;

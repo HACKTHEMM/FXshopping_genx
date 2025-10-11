@@ -64,7 +64,7 @@ export default function RouteComparison({ routes, onSelectRoute, rateMetadata }:
             </div>
             <div className="flex items-center space-x-1.5">
               <span className="inline-block w-2 h-2 bg-purple-500 rounded-full"></span>
-              <span className="text-gray-700"><strong>SIMULATED:</strong> Fiat anchors (deposit/withdrawal)</span>
+              <span className="text-gray-700"><strong>CUSTOM ASSETS:</strong> Demo tokens (anchor infrastructure ready)</span>
             </div>
             <div className="flex items-center space-x-1.5">
               <span className="inline-block w-2 h-2 bg-yellow-500 rounded-full"></span>
@@ -108,9 +108,14 @@ export default function RouteComparison({ routes, onSelectRoute, rateMetadata }:
         {routes.map((route, index) => {
           const isExpanded = expandedRouteId === route.routeId;
           const isBest = index === 0;
-          const savingsAmount = route.savingsVsBaseline || 0;
-          const savingsPercent = worstRoute.netReceive > 0 
-            ? ((savingsAmount / worstRoute.netReceive) * 100).toFixed(2)
+
+          // Calculate minimum receive amounts with slippage for accurate comparison
+          const minReceive = route.netReceive * (1 - route.slippagePct / 100);
+          const worstMinReceive = worstRoute.netReceive * (1 - worstRoute.slippagePct / 100);
+
+          const savingsAmount = minReceive - worstMinReceive;
+          const savingsPercent = worstMinReceive > 0
+            ? ((savingsAmount / worstMinReceive) * 100).toFixed(2)
             : '0';
 
           return (
@@ -167,15 +172,20 @@ export default function RouteComparison({ routes, onSelectRoute, rateMetadata }:
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-gray-500 mb-1">They Receive</div>
+                    <div className="text-xs text-gray-500 mb-1">
+                      They Receive <span className="text-[10px] text-gray-400">(minimum)</span>
+                    </div>
                     <div className="text-lg md:text-xl font-bold text-green-600 truncate">
-                      {route.netReceive.toLocaleString()} <span className="text-sm md:text-base">{route.destinationFiat || route.destAsset.code}</span>
+                      {(route.netReceive * (1 - route.slippagePct / 100)).toFixed(2)} <span className="text-sm md:text-base">{route.destinationFiat || route.destAsset.code}</span>
+                    </div>
+                    <div className="text-[10px] text-gray-500 mt-0.5">
+                      Expected: ~{route.netReceive.toFixed(2)} (with {route.slippagePct}% slippage buffer)
                     </div>
                   </div>
                   <div>
                     <div className="text-xs text-gray-500 mb-1">Exchange Rate</div>
                     <div className="text-lg md:text-xl font-bold text-black">
-                      {route.effectiveRate.toFixed(4)}
+                      {route.effectiveRate.toFixed(3)}
                     </div>
                   </div>
                 </div>
@@ -278,7 +288,7 @@ export default function RouteComparison({ routes, onSelectRoute, rateMetadata }:
                                   </div>
                                   {isAnchorLeg && (
                                     <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium bg-purple-600 text-white rounded">
-                                      🟣 SIMULATED ANCHOR
+                                      🟣 CUSTOM ASSET
                                     </span>
                                   )}
                                   {isStellarDex && (
@@ -294,7 +304,7 @@ export default function RouteComparison({ routes, onSelectRoute, rateMetadata }:
                                 </div>
                                 <div className="text-[10px] md:text-xs text-gray-600 space-y-0.5 md:space-y-1">
                                   <div className="break-words">Provider: {leg.provider || 'N/A'}</div>
-                                  <div>Rate: {leg.rate.toFixed(6)}</div>
+                                  <div>Rate: {leg.rate.toFixed(3)}</div>
                                   <div>Time: ~{leg.estSeconds}s ({leg.estSeconds < 60 ? 'instant' : leg.estSeconds < 3600 ? `${Math.floor(leg.estSeconds / 60)}min` : `${Math.floor(leg.estSeconds / 3600)}hr`})</div>
                                   {leg.fees.length > 0 && (
                                     <div className="break-words">
@@ -390,22 +400,26 @@ export default function RouteComparison({ routes, onSelectRoute, rateMetadata }:
                 </ul>
               </div>
 
-              {/* What's SIMULATED */}
+              {/* What's CUSTOM ASSETS (Demo) */}
               {routes.some(r => r.legs.some(l => l.type === 'anchor-deposit' || l.type === 'anchor-withdraw')) && (
                 <div className="mb-4">
-                  <h5 className="text-sm md:text-base font-bold text-purple-700 mb-2">🟣 SIMULATED (For Demonstration):</h5>
+                  <h5 className="text-sm md:text-base font-bold text-purple-700 mb-2">🟣 CUSTOM ASSETS (Demo Tokens):</h5>
                   <ul className="text-xs md:text-sm text-gray-700 space-y-1.5 ml-4">
                     <li className="flex items-start">
                       <span className="mr-2">•</span>
-                      <span><strong>Anchor Deposits/Withdrawals:</strong> Fiat ↔ Token conversion is simulated (SEP-24 compliant architecture ready for real anchors like Vibrant, MoneyGram Access)</span>
+                      <span><strong>What They Are:</strong> INRTEST and USDTEST are custom assets issued on Stellar testnet (not full anchors)</span>
                     </li>
                     <li className="flex items-start">
                       <span className="mr-2">•</span>
-                      <span><strong>Fee Structure:</strong> 0.2% deposit fee, 0.5% withdrawal fee (based on typical anchor fees)</span>
+                      <span><strong>Fiat Conversion:</strong> INR/USD ↔ Token conversion uses real FX rates but is simulated for demo purposes</span>
                     </li>
                     <li className="flex items-start">
                       <span className="mr-2">•</span>
-                      <span><strong>Conversion Rate:</strong> Real-time FX rates from ExchangeRate API (e.g., INR→USD uses live market rates)</span>
+                      <span><strong>For Production:</strong> Would need SEP-6/24/31 endpoints, stellar.toml file, KYC flows, and banking integration</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="mr-2">•</span>
+                      <span><strong>Fee Structure:</strong> 0.2% deposit fee, 0.5% withdrawal fee (typical anchor fees)</span>
                     </li>
                   </ul>
                 </div>

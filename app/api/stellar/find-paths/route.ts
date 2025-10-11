@@ -187,7 +187,7 @@ export async function GET(request: NextRequest) {
               paths.push(syntheticPath);
 
               if (depthAnalysis.sufficientLiquidity) {
-                console.log(`✅ Built synthetic path from orderbook: ${amount} ${source.code} → ${destAmount.toFixed(2)} ${dest.code} @ ${depthAnalysis.weightedAverageRate.toFixed(6)}`);
+                console.log(`✅ Built synthetic path from orderbook: ${amount} ${source.code} → ${destAmount.toFixed(2)} ${dest.code} @ ${depthAnalysis.weightedAverageRate.toFixed(3)}`);
               } else {
                 console.log(`⚠️ Insufficient liquidity: Only ${depthAnalysis.availableLiquidity.toFixed(2)} available of ${amountNeeded} needed`);
               }
@@ -243,6 +243,8 @@ export async function GET(request: NextRequest) {
       const sourceAmount = parseFloat(path.source_amount);
       const destAmount = parseFloat(path.destination_amount);
       const rate = sourceAmount > 0 ? destAmount / sourceAmount : 0;
+      // Truncate rate to 3 decimal places for consistency
+      const truncatedRate = Math.floor(rate * 1000) / 1000;
       const hops = path.path.length + 1;
       const quality = calculatePathQuality(path, hops, path.liquidityAnalysis);
 
@@ -265,7 +267,7 @@ export async function GET(request: NextRequest) {
           code: asset.asset_code || 'XLM',
           issuer: asset.asset_issuer,
         })),
-        effectiveRate: rate,
+        effectiveRate: truncatedRate,
         hops,
         quality,
         liquidityAnalysis: path.liquidityAnalysis,

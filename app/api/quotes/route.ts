@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
       rateTimestamp = conversionResult.timestamp;
       rateSource = 'ExchangeRate-API (live)';
 
-      console.log(`📊 FX Rate: ${from} → ${to} = ${baseRate.toFixed(6)} (${rateSource})`);
+      console.log(`📊 FX Rate: ${from} → ${to} = ${baseRate.toFixed(3)} (${rateSource})`);
     } catch (error: any) {
       console.error('Failed to fetch FX rate:', error.message);
       return NextResponse.json(
@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
         destCurrency: to,
         sendAmount,
         receiveAmount: parseFloat(feeCalc.receiveAmount.toFixed(2)),
-        exchangeRate: parseFloat(feeCalc.effectiveRate.toFixed(6)),
+        exchangeRate: parseFloat(feeCalc.effectiveRate.toFixed(3)),
         fees,
         estimatedTime: provider.estimatedTime,
         expiresAt: new Date(Date.now() + 60000), // 1 minute expiry

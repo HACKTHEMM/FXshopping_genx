@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { RouteQuote } from '@/lib/types/route';
 import PaymentForm from './PaymentForm';
 import RouteComparison from './RouteComparison';
+import TestnetAnchor from './TestnetAnchor';
 import { connectFreighter, signWithFreighter, parseFreighterError } from '@/lib/freighter-integration';
 import { buildPathPaymentTransaction, submitTransaction, hasTrustline, getBalance } from '@/lib/stellar-transaction';
 
@@ -112,6 +113,9 @@ export default function Routes({ publicKey }: RoutesProps) {
           Compare cross-border payment routes and find the best rates across multiple providers
         </p>
       </div>
+
+      {/* Testnet Anchor - Get Demo Tokens */}
+      <TestnetAnchor />
 
       {/* Responsive Layout: Stack on mobile, side-by-side on desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">

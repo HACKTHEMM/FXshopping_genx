@@ -29,6 +29,15 @@ class FXRateService {
   private readonly API_URL = this.API_KEY
     ? `https://v6.exchangerate-api.com/v6/${this.API_KEY}/latest`
     : 'https://api.exchangerate-api.com/v4/latest';
+
+  /**
+   * Truncate rate to 3 decimal places (not round)
+   * Example: 0.0119 → 0.011 (truncate), not 0.012 (round)
+   */
+  private truncateRate(rate: number): number {
+    return Math.floor(rate * 1000) / 1000;
+  }
+
   private readonly FALLBACK_RATES: Record<string, Record<string, number>> = {
     // Fallback rates if API fails (updated October 2025)
     USD: {
@@ -102,6 +111,10 @@ class FXRateService {
       const ratesData = data.conversion_rates || data.rates;
       const timestamp = data.time_last_update_unix || data.time_last_updated;
 
+      if (!ratesData) {
+        throw new Error('No rates data in API response');
+      }
+
       const rates: FXRates = {
         base: cacheKey,
         rates: ratesData,
@@ -113,7 +126,7 @@ class FXRateService {
       this.cache.set(cacheKey, rates);
       this.cacheExpiry.set(cacheKey, Date.now() + this.CACHE_TTL);
 
-      console.log(`✅ Fetched ${Object.keys(data.rates).length} rates for ${cacheKey}`);
+      console.log(`✅ Fetched ${Object.keys(ratesData).length} rates for ${cacheKey}`);
       return rates;
 
     } catch (error) {
@@ -161,11 +174,14 @@ class FXRateService {
     }
 
     const rates = await this.getRates(fromCurrency);
-    const rate = rates.rates[toCurrency];
+    const rawRate = rates.rates[toCurrency];
 
-    if (!rate) {
+    if (!rawRate) {
       throw new Error(`Rate not available for ${fromCurrency} → ${toCurrency}`);
     }
+
+    // Truncate rate to 3 decimal places
+    const rate = this.truncateRate(rawRate);
 
     return {
       from: fromCurrency,
@@ -189,13 +205,14 @@ class FXRateService {
     }
 
     const rates = await this.getRates(fromCurrency);
-    const rate = rates.rates[toCurrency];
+    const rawRate = rates.rates[toCurrency];
 
-    if (!rate) {
+    if (!rawRate) {
       throw new Error(`Rate not available for ${fromCurrency} → ${toCurrency}`);
     }
 
-    return rate;
+    // Truncate rate to 3 decimal places
+    return this.truncateRate(rawRate);
   }
 
   /**
@@ -211,7 +228,8 @@ class FXRateService {
     for (const currency of targetCurrencies) {
       const upperCurrency = currency.toUpperCase();
       if (rates.rates[upperCurrency]) {
-        result[upperCurrency] = rates.rates[upperCurrency];
+        // Truncate rate to 3 decimal places
+        result[upperCurrency] = this.truncateRate(rates.rates[upperCurrency]);
       }
     }
 
