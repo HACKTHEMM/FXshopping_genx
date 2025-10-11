@@ -28,12 +28,9 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-echo ⚡ Optimizing contract...
-soroban contract optimize --wasm target\wasm32-unknown-unknown\release\route_registry.wasm
-if %errorlevel% neq 0 (
-    echo ❌ Contract optimization failed
-    exit /b 1
-)
+echo ⚡ Optimizing contract (skipping wasm-opt due to bulk memory issues)...
+REM soroban contract optimize --wasm target\wasm32-unknown-unknown\release\route_registry.wasm
+echo ✓ Using unoptimized WASM for deployment
 
 echo 🔑 Setting up deployment identity...
 
@@ -58,7 +55,7 @@ echo ⏳ Waiting for funding to complete...
 timeout /t 3 /nobreak >nul
 
 echo 🚀 Deploying contract to testnet...
-for /f %%i in ('soroban contract deploy --wasm target\wasm32-unknown-unknown\release\route_registry.optimized.wasm --source route-registry --network testnet') do set CONTRACT_ID=%%i
+for /f %%i in ('soroban contract deploy --wasm target\wasm32-unknown-unknown\release\route_registry.wasm --source route-registry --network testnet') do set CONTRACT_ID=%%i
 
 if "%CONTRACT_ID%"=="" (
     echo ❌ Contract deployment failed

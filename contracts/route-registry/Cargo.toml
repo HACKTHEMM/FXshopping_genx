@@ -8,10 +8,10 @@ rust-version = "1.74"
 crate-type = ["cdylib"]
 
 [dependencies]
-soroban-sdk = "21.0.0"
+soroban-sdk = "23.0.0"
 
 [dev-dependencies]
-soroban-sdk = { version = "21.0.0", features = ["testutils"] }
+soroban-sdk = { version = "23.0.0", features = ["testutils"] }
 
 [features]
 testutils = ["soroban-sdk/testutils"]

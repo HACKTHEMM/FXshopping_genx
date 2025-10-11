@@ -1,6 +1,6 @@
 #![no_std]
 use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short, 
+    contract, contractimpl, contracttype, contracterror, symbol_short, 
     Address, BytesN, Env, Symbol, Map, log
 };
 
@@ -19,7 +19,8 @@ pub struct RouteData {
 }
 
 /// Contract errors
-#[contracttype]
+#[contracterror]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub enum Error {
     RouteNotFound = 1,
     RouteAlreadyFinalized = 2,
@@ -28,9 +29,9 @@ pub enum Error {
 }
 
 const ROUTES: Symbol = symbol_short!("ROUTES");
-const STATUS_REG: Symbol = symbol_short!("registered");
-const STATUS_FIN: Symbol = symbol_short!("finalized");
-const STATUS_FAIL: Symbol = symbol_short!("failed");
+const STATUS_REG: Symbol = symbol_short!("reg");
+const STATUS_FIN: Symbol = symbol_short!("fin");
+const STATUS_FAIL: Symbol = symbol_short!("fail");
 
 #[contract]
 pub struct RouteRegistryContract;
@@ -82,7 +83,7 @@ impl RouteRegistryContract {
 
         // Emit event
         env.events().publish(
-            (symbol_short!("route_reg"), route_id.clone()),
+            (symbol_short!("reg"), route_id.clone()),
             (expected_net, sender.clone(), env.ledger().timestamp())
         );
 
@@ -137,7 +138,7 @@ impl RouteRegistryContract {
 
         // Emit finalization event
         env.events().publish(
-            (symbol_short!("route_fin"), route_id.clone()),
+            (symbol_short!("fin"), route_id.clone()),
             (variance, tx_hash.clone(), env.ledger().timestamp())
         );
 
@@ -184,8 +185,8 @@ impl RouteRegistryContract {
 
         // Emit failure event
         env.events().publish(
-            (symbol_short!("route_fail"), route_id.clone()),
-            (failure_reason, env.ledger().timestamp())
+            (symbol_short!("fail"), route_id.clone()),
+            (failure_reason.clone(), env.ledger().timestamp())
         );
 
         log!(&env, "Route failed: {:?}, reason: {:?}", route_id, failure_reason);
