@@ -52,7 +52,8 @@ export interface RouteQuote {
   grossSend: number;                // User-input nominal send amount
   legs: RouteLeg[];                 // Ordered array of route legs
   totalFees: number;                // Sum of all fees in destination asset units
-  netReceive: number;               // Amount received after all fees & slippage
+  netReceive: number;               // Amount received after all fees & slippage (may be fiat)
+  onChainReceive?: number;          // Amount received on-chain before withdrawal (in dest tokens)
   effectiveRate: number;            // netReceive / grossSend (overall conversion rate)
   riskScore: number;                // 0 (low risk) to 1 (high risk)
   slippagePct: number;              // Slippage buffer applied (percentage)

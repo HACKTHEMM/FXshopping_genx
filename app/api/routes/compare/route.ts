@@ -278,6 +278,9 @@ export async function POST(request: NextRequest) {
           // Calculate amount after on-chain exchange
           currentAmount = path.destination.amount;
 
+          // Store the on-chain receive amount (in tokens, before withdrawal)
+          const onChainReceive = currentAmount;
+
           // Step 3: Withdrawal leg (token → fiat) using anchor simulator
           if (destFiat && destFiat !== path.destination.code) {
             const withdrawalSim = await anchorSimulator.simulateWithdrawal(
@@ -308,7 +311,7 @@ export async function POST(request: NextRequest) {
             sum + leg.fees.reduce((feeSum, fee) => feeSum + fee.amount, 0), 0
           );
 
-          // Final amount after all legs and fees
+          // Final amount after all legs and fees (may be fiat if withdrawal leg exists)
           const netReceive = currentAmount;
 
           // Extract liquidity warnings from path quality
@@ -329,6 +332,7 @@ export async function POST(request: NextRequest) {
             legs,
             totalFees,
             netReceive: parseFloat(netReceive.toFixed(2)),
+            onChainReceive: parseFloat(onChainReceive.toFixed(7)), // On-chain token amount (for transaction building)
             effectiveRate: netReceive / sendAmount,
             riskScore: calculateRiskScore(legs.length, liquidityDepth, 0.99, 5),
             slippagePct: 2, // 2% slippage buffer for transaction safety
