@@ -42,7 +42,17 @@ export async function POST(request: NextRequest) {
       command += ` -- finalize_route`;
       if (params && params.length >= 3) {
         command += ` --route_id "${params[0]}"`;
-        command += ` --tx_hash "${params[1]}"`;
+
+        // Handle tx_hash which might be an object with type and value
+        const txHashParam = params[1];
+        let txHashValue: string;
+        if (typeof txHashParam === 'object' && txHashParam !== null && 'value' in txHashParam) {
+          txHashValue = (txHashParam as { value: string }).value;
+        } else {
+          txHashValue = String(txHashParam);
+        }
+        command += ` --tx_hash "${txHashValue}"`;
+
         command += ` --actual_net ${params[2]}`;
       }
     } else if (method === 'get_route') {
