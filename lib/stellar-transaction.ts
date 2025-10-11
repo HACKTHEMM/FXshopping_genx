@@ -51,31 +51,56 @@ export async function buildPathPaymentTransaction(
       ? new Asset(route.destAsset.code, route.destAsset.issuer)
       : Asset.native();
 
-    // Calculate minimum destination amount with reasonable slippage tolerance
-    // Use onChainReceive if available (amount before withdrawal), otherwise use netReceive
-    // This fixes the unit mismatch where netReceive may be in fiat but we need token amount
+    // CRITICAL: Calculate the correct send and receive amounts
+    // The route may have anchor deposit/withdrawal legs that aren't on-chain
+    
+    // 1. Determine actual on-chain send amount (after deposit fees if any)
+    let actualSendAmount = route.grossSend;
+    
+    // Check if first leg is an anchor deposit (fiat → token)
+    const firstLeg = route.legs[0];
+    if (firstLeg && firstLeg.type === 'anchor-deposit') {
+      // After deposit fee, we have less tokens to send on-chain
+      const depositFee = firstLeg.fees.reduce((sum, f) => sum + f.amount, 0);
+      actualSendAmount = route.grossSend - depositFee;
+      console.log(`📝 Deposit fee detected: ${depositFee} ${route.sendAsset.code}`);
+      console.log(`   Adjusting send amount: ${route.grossSend} → ${actualSendAmount}`);
+    }
+    
+    // 2. Determine expected on-chain receive amount (before withdrawal if any)
+    let expectedReceive: number;
+    
+    if (route.onChainReceive && route.onChainReceive > 0) {
+      // Use the on-chain amount (most accurate for path payment)
+      expectedReceive = route.onChainReceive;
+      console.log('✅ Using onChainReceive:', expectedReceive, route.destAsset.code);
+    } else {
+      // Fallback: calculate from rate (less accurate)
+      expectedReceive = actualSendAmount * route.effectiveRate;
+      console.log('⚠️  Calculated from rate:', expectedReceive, '=', actualSendAmount, '*', route.effectiveRate);
+    }
 
-    // Calculate slippage based on direction and liquidity
-    const isUsdToInr = route.sendAsset.code.includes('USD') && route.destAsset.code.includes('INR');
-
-    // Use conservative slippage for testnet due to liquidity issues
-    // For production, this should be 1-2% max
-    const slippageTolerance = isUsdToInr ? 0.10 : 0.05; // 10% for USD→INR, 5% for others
-
-    const expectedReceive = route.onChainReceive || route.netReceive;
-
-    // Apply aggressive slippage for destMin to prevent failures
-    // The actual amount received will likely be much better than this minimum
+    // 3. Apply slippage tolerance to get minimum acceptable amount
+    // For testnet with low liquidity, use aggressive slippage tolerance
+    // Production should use 1-3% max
+    const slippageTolerance = 0.25; // 25% slippage tolerance for testnet
     const destMin = (expectedReceive * (1 - slippageTolerance)).toFixed(7);
+    
+    // Sanity checks
+    if (parseFloat(destMin) <= 0) {
+      throw new Error(`Invalid destMin calculated: ${destMin}. Expected receive: ${expectedReceive}`);
+    }
+    
+    if (actualSendAmount <= 0) {
+      throw new Error(`Invalid send amount: ${actualSendAmount}. Gross send: ${route.grossSend}`);
+    }
 
     console.log('🏗️  Building path payment transaction:');
-    console.log('  📤 Send (exact):', route.grossSend, route.sendAsset.code);
-    console.log('  📥 Receive (expected):', expectedReceive, route.destAsset.code);
-    console.log('  ⚠️  Min receive (with', (slippageTolerance * 100) + '% safety):', destMin, route.destAsset.code);
-    console.log('  📊 Effective rate:', (expectedReceive / route.grossSend).toFixed(6));
-    if (route.onChainReceive) {
-      console.log('  💰 onChainReceive from quote:', route.onChainReceive, route.destAsset.code);
-    }
+    console.log('  📤 Send (exact):', actualSendAmount.toFixed(7), route.sendAsset.code);
+    console.log('  📥 Receive (expected):', expectedReceive.toFixed(7), route.destAsset.code);
+    console.log('  ⚠️  Min receive (25% safety):', destMin, route.destAsset.code);
+    console.log('  📊 Effective rate:', (expectedReceive / actualSendAmount).toFixed(6));
+    console.log('  🎯 Route ID:', route.routeId);
     console.log('  📍 Destination:', destination);
 
     const transaction = new TransactionBuilder(sourceAccount, {
@@ -85,7 +110,7 @@ export async function buildPathPaymentTransaction(
       .addOperation(
         Operation.pathPaymentStrictSend({
           sendAsset,
-          sendAmount: route.grossSend.toFixed(7),
+          sendAmount: actualSendAmount.toFixed(7),
           destination,
           destAsset,
           destMin,
@@ -102,9 +127,10 @@ export async function buildPathPaymentTransaction(
 
     return xdr;
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error building transaction:', error);
-    throw new Error(`Failed to build transaction: ${error.message}`);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    throw new Error(`Failed to build transaction: ${errorMessage}`);
   }
 }
 
@@ -144,14 +170,33 @@ export async function submitTransaction(
       explorerUrl,
     };
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error submitting transaction:', error);
 
     // Parse Horizon error
-    let errorMessage = error.message;
-    if (error.response?.data?.extras?.result_codes) {
-      const codes = error.response.data.extras.result_codes;
-      errorMessage = `Transaction failed: ${codes.transaction} (${codes.operations?.join(', ')})`;
+    let errorMessage = 'Unknown error occurred';
+    
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      
+      // Check for Horizon-specific error structure
+      const horizonError = error as Error & {
+        response?: {
+          data?: {
+            extras?: {
+              result_codes?: {
+                transaction: string;
+                operations?: string[];
+              };
+            };
+          };
+        };
+      };
+      
+      if (horizonError.response?.data?.extras?.result_codes) {
+        const codes = horizonError.response.data.extras.result_codes;
+        errorMessage = `Transaction failed: ${codes.transaction} (${codes.operations?.join(', ') || 'no operation details'})`;
+      }
     }
 
     throw new Error(errorMessage);
@@ -177,8 +222,15 @@ export async function hasTrustline(
     const server = new Server(HORIZON_URL);
     const account = await server.loadAccount(publicKey);
 
+    interface AssetBalance {
+      asset_type: string;
+      asset_code?: string;
+      asset_issuer?: string;
+      balance: string;
+    }
+
     const balance = account.balances.find(
-      (b: any) =>
+      (b: AssetBalance) =>
         b.asset_code === asset.code &&
         b.asset_issuer === asset.issuer
     );
@@ -206,14 +258,21 @@ export async function getBalance(
     const server = new Server(HORIZON_URL);
     const account = await server.loadAccount(publicKey);
 
+    interface AssetBalance {
+      asset_type: string;
+      asset_code?: string;
+      asset_issuer?: string;
+      balance: string;
+    }
+
     if (!asset.issuer) {
       // Native XLM
-      const xlmBalance = account.balances.find((b: any) => b.asset_type === 'native');
+      const xlmBalance = account.balances.find((b: AssetBalance) => b.asset_type === 'native');
       return xlmBalance?.balance || '0';
     }
 
     const balance = account.balances.find(
-      (b: any) =>
+      (b: AssetBalance) =>
         b.asset_code === asset.code &&
         b.asset_issuer === asset.issuer
     );
