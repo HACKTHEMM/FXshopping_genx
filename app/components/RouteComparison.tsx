@@ -2,10 +2,17 @@
 
 import { useState } from 'react';
 import { RouteQuote, RouteLeg } from '@/lib/types/route';
+import { 
+  registerRoute, 
+  createRouteId, 
+  RouteAttestation,
+  DEPLOYMENT_INSTRUCTIONS 
+} from '@/lib/smart-contract-integration';
 
 interface RouteComparisonProps {
   routes: RouteQuote[];
   onSelectRoute?: (route: RouteQuote) => void;
+  publicKey?: string;
   rateMetadata?: {
     rateSource?: string;
     rateTimestamp?: string;
@@ -13,8 +20,9 @@ interface RouteComparisonProps {
   };
 }
 
-export default function RouteComparison({ routes, onSelectRoute, rateMetadata }: RouteComparisonProps) {
+export default function RouteComparison({ routes, onSelectRoute, publicKey, rateMetadata }: RouteComparisonProps) {
   const [expandedRouteId, setExpandedRouteId] = useState<string | null>(null);
+  const [attestingRoutes, setAttestingRoutes] = useState<Set<string>>(new Set());
 
   if (routes.length === 0) {
     return (
@@ -44,6 +52,58 @@ export default function RouteComparison({ routes, onSelectRoute, rateMetadata }:
     if (score < 0.3) return 'Low Risk';
     if (score < 0.6) return 'Medium Risk';
     return 'High Risk';
+  };
+
+  // Smart contract attestation function
+  const handleRouteAttestation = async (route: RouteQuote) => {
+    if (!publicKey) {
+      alert('Please connect your wallet first');
+      return;
+    }
+
+    const routeId = createRouteId({
+      sourceAsset: route.sendAsset.code,
+      destAsset: route.destAsset.code,
+      sendAmount: route.grossSend,
+      senderAddress: publicKey,
+      timestamp: Date.now()
+    });
+
+    setAttestingRoutes(prev => new Set(prev).add(route.routeId));
+
+    try {
+      // Register route with smart contract
+      console.log('🔗 Registering route attestation...');
+      const attestationResult = await registerRoute(
+        publicKey,
+        routeId,
+        route.netReceive
+      );
+
+      if (attestationResult.success) {
+        console.log('✅ Route attestation registered:', attestationResult.transactionHash);
+        
+        // Show success message
+        alert(`Route attestation registered successfully!\nTransaction: ${attestationResult.transactionHash}\nRoute ID: ${routeId}`);
+        
+        // Proceed with route selection if callback provided
+        if (onSelectRoute) {
+          onSelectRoute(route);
+        }
+      } else {
+        throw new Error(attestationResult.error || 'Attestation failed');
+      }
+
+    } catch (error: any) {
+      console.error('❌ Route attestation failed:', error);
+      alert(`Route attestation failed: ${error.message}`);
+    } finally {
+      setAttestingRoutes(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(route.routeId);
+        return newSet;
+      });
+    }
   };
 
   return (
@@ -344,14 +404,48 @@ export default function RouteComparison({ routes, onSelectRoute, rateMetadata }:
                   </div>
                 )}
 
-                {/* Select Route Button */}
+                {/* Select Route Button with Smart Contract Attestation */}
                 {onSelectRoute && (
-                  <button
-                    onClick={() => onSelectRoute(route)}
-                    className="w-full mt-3 md:mt-4 bg-black text-white px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-medium hover:bg-gray-800 transition-colors"
-                  >
-                    Select This Route
-                  </button>
+                  <div className="space-y-2 mt-3 md:mt-4">
+                    <button
+                      onClick={() => handleRouteAttestation(route)}
+                      disabled={attestingRoutes.has(route.routeId)}
+                      className="w-full bg-black text-white px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                    >
+                      {attestingRoutes.has(route.routeId) ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          <span>Registering...</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span>Select & Attest Route</span>
+                        </>
+                      )}
+                    </button>
+                    
+                    {/* Smart Contract Info */}
+                    <div className="text-xs text-gray-600 bg-gray-50 px-3 py-2 rounded">
+                      <div className="flex items-center space-x-1.5 mb-1">
+                        <svg className="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="font-medium">Smart Contract Attestation</span>
+                      </div>
+                      <div className="text-gray-500">
+                        {DEPLOYMENT_INSTRUCTIONS.status === "✅ Configured" 
+                          ? "Route will be registered on-chain for transparency"
+                          : "Demo mode: Route attestation simulated locally"
+                        }
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
@@ -446,6 +540,32 @@ export default function RouteComparison({ routes, onSelectRoute, rateMetadata }:
                 </div>
               )}
 
+              {/* Smart Contract Status */}
+              <div className="pt-3 border-t border-blue-200 mb-3">
+                <h5 className="text-sm font-bold text-gray-900 mb-2">🔗 Smart Contract Attestation:</h5>
+                <div className="text-xs text-gray-600">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <span className={`inline-block w-2 h-2 rounded-full ${
+                      DEPLOYMENT_INSTRUCTIONS.status === "✅ Configured" ? 'bg-green-500' : 'bg-yellow-500'
+                    }`}></span>
+                    <span><strong>Status:</strong> {DEPLOYMENT_INSTRUCTIONS.status}</span>
+                  </div>
+                  <div className="mb-2">
+                    <strong>Contract Address:</strong> {DEPLOYMENT_INSTRUCTIONS.contractAddress}
+                  </div>
+                  {DEPLOYMENT_INSTRUCTIONS.status !== "✅ Configured" && (
+                    <div className="bg-yellow-50 border border-yellow-200 p-2 rounded text-xs">
+                      <div className="font-medium text-yellow-800 mb-1">To Enable Real Smart Contract:</div>
+                      <div className="text-yellow-700 space-y-1">
+                        {DEPLOYMENT_INSTRUCTIONS.steps.map((step, index) => (
+                          <div key={index}>• {step}</div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Learn More */}
               <div className="pt-3 border-t border-blue-200">
                 <p className="text-xs text-gray-600">
@@ -455,6 +575,8 @@ export default function RouteComparison({ routes, onSelectRoute, rateMetadata }:
                   <a href="https://horizon-testnet.stellar.org" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline hover:text-blue-800">Stellar Testnet</a>
                   {' • '}
                   <a href="https://www.freighter.app" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline hover:text-blue-800">Freighter Wallet</a>
+                  {' • '}
+                  <a href="https://soroban.stellar.org" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline hover:text-blue-800">Soroban Smart Contracts</a>
                 </p>
               </div>
             </div>

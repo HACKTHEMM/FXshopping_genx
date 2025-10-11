@@ -134,6 +134,7 @@ export default function Routes({ publicKey }: RoutesProps) {
           <RouteComparison
             routes={routes}
             onSelectRoute={handleSelectRoute}
+            publicKey={connectedPublicKey || publicKey}
             rateMetadata={rateMetadata}
           />
         </div>

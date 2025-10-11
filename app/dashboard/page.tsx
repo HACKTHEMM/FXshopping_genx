@@ -6,6 +6,7 @@ import Navbar from '../components/Navbar';
 import Transactions from '../components/Transactions';
 import Settings from '../components/Settings';
 import Routes from '../components/Routes';
+import ContractDebugPanel from '../components/ContractDebugPanel';
 
 // Calculate balance history from payment operations
 const calculateBalanceHistory = async (publicKey: string) => {
@@ -429,6 +430,9 @@ export default function Dashboard() {
     <div className="h-screen overflow-hidden bg-white flex flex-col">
       <Navbar activeTab={activeTab} onTabChange={setActiveTab} onLogout={handleLogout} />
       <div className="flex-1 overflow-hidden">{renderContent()}</div>
+      
+      {/* Smart Contract Debug Panel - only show on Routes tab */}
+      {activeTab === 'routes' && <ContractDebugPanel />}
     </div>
   );
 }
