@@ -11,8 +11,14 @@ export async function POST(request: NextRequest) {
     console.log(`🔧 Contract invocation: ${method}`);
     console.log(`   Params:`, params);
 
-    const contractId = process.env.NEXT_PUBLIC_ROUTE_REGISTRY_CONTRACT_ID;
+    // Server-side API routes can access both regular and NEXT_PUBLIC_ env vars
+    // Try both for compatibility
+    const contractId = process.env.ROUTE_REGISTRY_CONTRACT_ID || process.env.NEXT_PUBLIC_ROUTE_REGISTRY_CONTRACT_ID;
+    console.log(`   Contract ID: ${contractId}`);
     if (!contractId) {
+      console.error('❌ Contract ID not found in environment');
+      console.error('   ROUTE_REGISTRY_CONTRACT_ID:', process.env.ROUTE_REGISTRY_CONTRACT_ID);
+      console.error('   NEXT_PUBLIC_ROUTE_REGISTRY_CONTRACT_ID:', process.env.NEXT_PUBLIC_ROUTE_REGISTRY_CONTRACT_ID);
       return NextResponse.json({
         success: false,
         error: 'Contract not deployed'
@@ -70,12 +76,42 @@ export async function POST(request: NextRequest) {
     console.log(`   Command: ${command}`);
 
     // Execute the contract invocation
-    const { stdout, stderr } = await execAsync(command);
-    
+    let stdout: string;
+    let stderr: string;
+
+    try {
+      const result = await execAsync(command);
+      stdout = result.stdout;
+      stderr = result.stderr;
+    } catch (execError: unknown) {
+      // execAsync throws when the command exits with non-zero status
+      const error = execError as { stdout?: string; stderr?: string; code?: number };
+      console.error('❌ Command execution failed with non-zero exit code');
+      console.error('   Exit code:', error.code);
+      console.error('   stdout:', error.stdout);
+      console.error('   stderr:', error.stderr);
+
+      return NextResponse.json({
+        success: false,
+        error: error.stderr || error.stdout || 'Command execution failed'
+      }, { status: 500 });
+    }
+
     console.log(`   stdout:`, stdout);
-    console.log(`   stderr:`, stderr);
-    
-    if (stderr && !stderr.includes('warning') && !stderr.includes('info')) {
+    if (stderr) {
+      console.log(`   stderr:`, stderr);
+    }
+
+    // Soroban CLI often writes informational messages to stderr even on success
+    // Only treat it as an error if there's an explicit error message
+    // or if stdout is empty (indicating the command truly failed)
+    const hasError = stderr && (
+      stderr.toLowerCase().includes('error:') ||
+      stderr.toLowerCase().includes('failed') ||
+      stderr.toLowerCase().includes('invalid')
+    );
+
+    if (hasError) {
       console.error('❌ Contract invocation error:', stderr);
       return NextResponse.json({
         success: false,
@@ -84,7 +120,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`   ✅ Contract invocation successful:`, stdout);
-    
+
     return NextResponse.json({
       success: true,
       result: stdout.trim()
