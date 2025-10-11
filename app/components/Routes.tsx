@@ -7,6 +7,7 @@ import RouteComparison from './RouteComparison';
 import TestnetAnchor from './TestnetAnchor';
 import { connectFreighter, signWithFreighter, parseFreighterError } from '@/lib/freighter-integration';
 import { buildPathPaymentTransaction, submitTransaction, hasTrustline, getBalance } from '@/lib/stellar-transaction';
+import { registerRouteWithContract, finalizeRouteWithContract, getContractExplorerUrl, isContractDeployed, ensureContractDeployed } from '@/lib/contract-client';
 
 interface RoutesProps {
   publicKey?: string;
@@ -21,6 +22,9 @@ export default function Routes({ publicKey }: RoutesProps) {
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
   const [explorerUrl, setExplorerUrl] = useState<string | null>(null);
   const [connectedPublicKey, setConnectedPublicKey] = useState<string | null>(null);
+  const [attestationHash, setAttestationHash] = useState<string | null>(null);
+  const [contractExplorerUrl, setContractExplorerUrl] = useState<string | null>(null);
+  const [contractDeploymentStatus, setContractDeploymentStatus] = useState<string | null>(null);
 
   const handleRoutesFound = (foundRoutes: RouteQuote[], metadata?: any) => {
     setRoutes(foundRoutes);
@@ -73,12 +77,34 @@ export default function Routes({ publicKey }: RoutesProps) {
       }
       console.log('✅ Balance sufficient:', balance, route.sendAsset.code);
 
-      // 4. Build transaction XDR
+      // 4. Auto-deploy and register route with smart contract
+      let attestationHash: string | null = null;
+      try {
+        console.log('🚀 Ensuring smart contract is deployed...');
+        setContractDeploymentStatus('Deploying smart contract...');
+        const deployment = await ensureContractDeployed();
+        if (deployment.success) {
+          setContractDeploymentStatus('Smart contract deployed successfully');
+          console.log('📝 Registering route with smart contract...');
+          attestationHash = await registerRouteWithContract(route, userPublicKey);
+          setAttestationHash(attestationHash);
+          setContractExplorerUrl(deployment.explorerUrl || getContractExplorerUrl());
+          console.log('✅ Route registered with contract');
+        } else {
+          setContractDeploymentStatus(`Smart contract deployment failed: ${deployment.error}`);
+          console.warn('⚠️ Smart contract deployment failed, continuing without attestation:', deployment.error);
+        }
+      } catch (contractError) {
+        setContractDeploymentStatus(`Smart contract error: ${contractError}`);
+        console.warn('⚠️ Smart contract registration failed, continuing without attestation:', contractError);
+      }
+
+      // 5. Build transaction XDR
       console.log('🏗️ Building transaction...');
       const xdr = await buildPathPaymentTransaction(userPublicKey, route);
       console.log('✅ Transaction built');
 
-      // 5. Request signature from Freighter
+      // 6. Request signature from Freighter
       console.log('✍️ Requesting signature from Freighter...');
       const signedXDR = await signWithFreighter(xdr);
       console.log('✅ Transaction signed');
@@ -91,7 +117,19 @@ export default function Routes({ publicKey }: RoutesProps) {
       console.log('  Ledger:', result.ledger);
       console.log('  Explorer:', result.explorerUrl);
 
-      // 7. Update state with success
+      // 7. Finalize route with smart contract (if attestation exists)
+      if (attestationHash) {
+        try {
+          console.log('✅ Finalizing route attestation...');
+          const actualReceive = route.grossSend * route.effectiveRate;
+          await finalizeRouteWithContract(attestationHash, actualReceive, result.hash);
+          console.log('✅ Route attestation finalized');
+        } catch (contractError) {
+          console.warn('⚠️ Smart contract finalization failed:', contractError);
+        }
+      }
+
+      // 8. Update state with success
       setTransactionHash(result.hash);
       setExplorerUrl(result.explorerUrl);
 
@@ -205,14 +243,47 @@ export default function Routes({ publicKey }: RoutesProps) {
               <div className="font-mono text-xs text-green-700 mb-3 break-all">
                 {transactionHash}
               </div>
-              <a
-                href={explorerUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block bg-green-600 text-white px-4 py-2 text-sm font-medium hover:bg-green-700 transition-colors"
-              >
-                View on Stellar Explorer →
-              </a>
+              <div className="flex flex-wrap gap-2">
+                <a
+                  href={explorerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block bg-green-600 text-white px-4 py-2 text-sm font-medium hover:bg-green-700 transition-colors"
+                >
+                  View on Stellar Explorer →
+                </a>
+                {contractExplorerUrl && attestationHash && (
+                  <a
+                    href={contractExplorerUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block bg-blue-600 text-white px-4 py-2 text-sm font-medium hover:bg-blue-700 transition-colors"
+                  >
+                    View Smart Contract →
+                  </a>
+                )}
+              </div>
+              {attestationHash && (
+                <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+                  <div className="font-bold text-blue-800 mb-1">Route Attestation:</div>
+                  <div className="font-mono text-blue-700 break-all">
+                    {attestationHash}
+                  </div>
+                  <div className="text-blue-600 mt-1">
+                    ✅ Route registered and finalized on-chain
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Contract Deployment Status */}
+          {contractDeploymentStatus && (
+            <div className="mb-4 p-4 bg-purple-100 border border-purple-300 text-sm">
+              <div className="flex items-center space-x-3">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+                <div className="text-purple-800">{contractDeploymentStatus}</div>
+              </div>
             </div>
           )}
 
