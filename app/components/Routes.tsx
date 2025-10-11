@@ -7,7 +7,7 @@ import RouteComparison from './RouteComparison';
 import TestnetAnchor from './TestnetAnchor';
 import { connectFreighter, signWithFreighter, parseFreighterError } from '@/lib/freighter-integration';
 import { buildPathPaymentTransaction, submitTransaction, hasTrustline, getBalance } from '@/lib/stellar-transaction';
-import { registerRouteWithContract, finalizeRouteWithContract, getContractExplorerUrl, ensureContractDeployed, getRouteFromContract } from '@/lib/contract-client';
+import { registerRouteWithContract, finalizeRouteWithContract, getContractExplorerUrl, ensureContractDeployed, getRouteFromContract, ContractRouteData } from '@/lib/contract-client';
 
 interface RoutesProps {
   publicKey?: string;
@@ -26,11 +26,11 @@ export default function Routes({ publicKey }: RoutesProps) {
   const [contractExplorerUrl, setContractExplorerUrl] = useState<string | null>(null);
   const [contractDeploymentStatus, setContractDeploymentStatus] = useState<string | null>(null);
   const [linkedRouteId, setLinkedRouteId] = useState<string | null>(null);
-  const [contractRouteData, setContractRouteData] = useState<Record<string, unknown> | null>(null);
+  const [contractRouteData, setContractRouteData] = useState<ContractRouteData | null>(null);
 
   const handleRoutesFound = (foundRoutes: RouteQuote[], metadata?: Record<string, unknown>) => {
     setRoutes(foundRoutes);
-    setRateMetadata(metadata);
+    setRateMetadata(metadata || null);
     setSelectedRoute(null); // Reset selection
     
     // Smooth scroll to results on mobile
@@ -188,7 +188,7 @@ export default function Routes({ publicKey }: RoutesProps) {
           <RouteComparison
             routes={routes}
             onSelectRoute={handleSelectRoute}
-            rateMetadata={rateMetadata}
+            rateMetadata={rateMetadata || undefined}
           />
         </div>
       </div>
@@ -300,16 +300,16 @@ export default function Routes({ publicKey }: RoutesProps) {
                         <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded">
                           <div className="font-bold text-blue-800 mb-1 text-xs">📊 Contract Data:</div>
                           <div className="text-blue-700 text-xs">
-                            <div>Status: <span className="font-mono">{contractRouteData.status}</span></div>
-                            <div>Expected: <span className="font-mono">{(contractRouteData.expected_net / 10000000).toFixed(2)}</span></div>
+                            <div>Status: <span className="font-mono">{String(contractRouteData.status)}</span></div>
+                            <div>Expected: <span className="font-mono">{(Number(contractRouteData.expected_net) / 10000000).toFixed(2)}</span></div>
                             {contractRouteData.actual_net && (
-                              <div>Actual: <span className="font-mono">{(contractRouteData.actual_net / 10000000).toFixed(2)}</span></div>
+                              <div>Actual: <span className="font-mono">{(Number(contractRouteData.actual_net) / 10000000).toFixed(2)}</span></div>
                             )}
                             {contractRouteData.variance && (
-                              <div>Variance: <span className="font-mono">{(contractRouteData.variance / 10000000).toFixed(2)}</span></div>
+                              <div>Variance: <span className="font-mono">{(Number(contractRouteData.variance) / 10000000).toFixed(2)}</span></div>
                             )}
                             {contractRouteData.tx_hash && (
-                              <div>TX Hash: <span className="font-mono">{contractRouteData.tx_hash}</span></div>
+                              <div>TX Hash: <span className="font-mono">{String(contractRouteData.tx_hash)}</span></div>
                             )}
                           </div>
                         </div>
