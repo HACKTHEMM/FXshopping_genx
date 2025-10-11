@@ -346,8 +346,8 @@ export async function POST(request: NextRequest) {
             onChainReceive: parseFloat(onChainReceive.toFixed(7)), // On-chain token amount (for transaction building)
             effectiveRate: netReceive / sendAmount,
             riskScore: calculateRiskScore(legs.length, liquidityDepth, 0.99, 5),
-            // Reasonable slippage: 2% for USD → INR, 1% for others
-            slippagePct: (sourceAsset.code.includes('USD') && destAsset.code.includes('INR')) ? 2 : 1,
+            // Conservative slippage for testnet liquidity: 10% for USD → INR, 5% for others
+            slippagePct: (sourceAsset.code.includes('USD') && destAsset.code.includes('INR')) ? 10 : 5,
             execution: {
               canBuildXDR: true,
               contractAttestationSupported: true,

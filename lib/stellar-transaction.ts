@@ -55,49 +55,40 @@ export async function buildPathPaymentTransaction(
     // Use onChainReceive if available (amount before withdrawal), otherwise use netReceive
     // This fixes the unit mismatch where netReceive may be in fiat but we need token amount
 
-    // Use 1% slippage as default, 2% for poor liquidity pairs
+    // Calculate slippage based on direction and liquidity
     const isUsdToInr = route.sendAsset.code.includes('USD') && route.destAsset.code.includes('INR');
-    const slippageTolerance = isUsdToInr ? 0.02 : 0.01; // 2% for USD→INR, 1% for others
+
+    // Use conservative slippage for testnet due to liquidity issues
+    // For production, this should be 1-2% max
+    const slippageTolerance = isUsdToInr ? 0.10 : 0.05; // 10% for USD→INR, 5% for others
 
     const expectedReceive = route.onChainReceive || route.netReceive;
-    // Apply slippage and truncate (not round) for conservative estimate
-    const destMinRaw = expectedReceive * (1 - slippageTolerance);
-    // Truncate to 7 decimal places (Stellar precision)
-    const destMin = (Math.floor(destMinRaw * 10000000) / 10000000).toFixed(7);
+
+    // Apply aggressive slippage for destMin to prevent failures
+    // The actual amount received will likely be much better than this minimum
+    const destMin = (expectedReceive * (1 - slippageTolerance)).toFixed(7);
 
     console.log('🏗️  Building path payment transaction:');
-    console.log('  📤 Send:', route.grossSend, route.sendAsset.code);
-    console.log('  📥 Receive (on-chain expected):', expectedReceive, route.destAsset.code);
-    console.log('  ⚠️  Receive (min with', (slippageTolerance * 100) + '% slippage):', destMin, route.destAsset.code);
-    console.log('  🎯 onChainReceive available:', !!route.onChainReceive);
-    console.log('  📊 netReceive:', route.netReceive);
+    console.log('  📤 Send (exact):', route.grossSend, route.sendAsset.code);
+    console.log('  📥 Receive (expected):', expectedReceive, route.destAsset.code);
+    console.log('  ⚠️  Min receive (with', (slippageTolerance * 100) + '% safety):', destMin, route.destAsset.code);
+    console.log('  📊 Effective rate:', (expectedReceive / route.grossSend).toFixed(6));
     if (route.onChainReceive) {
-      console.log('  💰 onChainReceive:', route.onChainReceive, route.destAsset.code);
-    }
-    if (route.onChainReceive && route.netReceive !== route.onChainReceive) {
-      console.log('  🏦 Final amount after withdrawal:', route.netReceive, route.destinationFiat || 'fiat');
+      console.log('  💰 onChainReceive from quote:', route.onChainReceive, route.destAsset.code);
     }
     console.log('  📍 Destination:', destination);
-
-    // Build transaction using pathPaymentStrictReceive for better control
-    // This guarantees the destination amount and lets the source vary slightly
-    const sendMax = (route.grossSend * (1 + slippageTolerance)).toFixed(7);
-    const destAmount = expectedReceive.toFixed(7);
-
-    console.log('  💸 Max send (with slippage):', sendMax, route.sendAsset.code);
-    console.log('  ✅ Guaranteed receive:', destAmount, route.destAsset.code);
 
     const transaction = new TransactionBuilder(sourceAccount, {
       fee: BASE_FEE,
       networkPassphrase: NETWORK_PASSPHRASE,
     })
       .addOperation(
-        Operation.pathPaymentStrictReceive({
+        Operation.pathPaymentStrictSend({
           sendAsset,
-          sendMax, // Maximum amount willing to send (with slippage)
+          sendAmount: route.grossSend.toFixed(7),
           destination,
           destAsset,
-          destAmount, // Exact amount to receive (guaranteed)
+          destMin,
           path: [], // Let Stellar find the path automatically via DEX
         })
       )
