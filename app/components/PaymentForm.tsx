@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { RouteQuote, StellarAsset } from '@/lib/types/route';
 
 interface PaymentFormProps {
-  onRoutesFound?: (routes: RouteQuote[]) => void;
+  onRoutesFound?: (routes: RouteQuote[], metadata?: any) => void;
   publicKey?: string;
 }
 
@@ -19,41 +19,70 @@ interface Currency {
 const TESTNET_ISSUER = 'GAYYZIK2JL6446376R5ZFRPCGNJ4EH2M7TFARTRFVURMW3AMMLU32RUC';
 
 const SUPPORTED_CURRENCIES: Currency[] = [
-  { 
-    code: 'INR', 
-    name: 'Indian Rupee', 
-    isFiat: true,
-    stellarAsset: { code: 'INRTEST', issuer: TESTNET_ISSUER }
+  // Cryptocurrencies
+  {
+    code: 'XLM',
+    name: 'Stellar Lumens',
+    isFiat: false,
+    stellarAsset: { code: 'XLM' }
   },
-  { 
-    code: 'USD', 
-    name: 'US Dollar', 
+  {
+    code: 'BTC',
+    name: 'Bitcoin',
+    isFiat: false,
+    stellarAsset: { code: 'BTC', issuer: TESTNET_ISSUER }
+  },
+  {
+    code: 'ETH',
+    name: 'Ethereum',
+    isFiat: false,
+    stellarAsset: { code: 'ETH', issuer: TESTNET_ISSUER }
+  },
+  {
+    code: 'USDC',
+    name: 'USD Coin',
+    isFiat: false,
+    stellarAsset: { code: 'USDC', issuer: TESTNET_ISSUER }
+  },
+  {
+    code: 'USDT',
+    name: 'Tether',
+    isFiat: false,
+    stellarAsset: { code: 'USDT', issuer: TESTNET_ISSUER }
+  },
+  // Fiat currencies for traditional FX
+  {
+    code: 'USD',
+    name: 'US Dollar',
     isFiat: true,
     stellarAsset: { code: 'USDTEST', issuer: TESTNET_ISSUER }
   },
-  { 
-    code: 'EUR', 
-    name: 'Euro', 
+  {
+    code: 'EUR',
+    name: 'Euro',
     isFiat: true,
     stellarAsset: { code: 'EURTEST', issuer: TESTNET_ISSUER }
   },
-  { 
-    code: 'PHP', 
-    name: 'Philippine Peso', 
+  {
+    code: 'INR',
+    name: 'Indian Rupee',
+    isFiat: true,
+    stellarAsset: { code: 'INRTEST', issuer: TESTNET_ISSUER }
+  },
+  {
+    code: 'PHP',
+    name: 'Philippine Peso',
     isFiat: true,
     stellarAsset: { code: 'PHPTEST', issuer: TESTNET_ISSUER }
-  },
-  { 
-    code: 'XLM', 
-    name: 'Stellar Lumens', 
-    isFiat: false,
-    stellarAsset: { code: 'XLM' }
   },
 ];
 
 export default function PaymentForm({ onRoutesFound, publicKey }: PaymentFormProps) {
-  const [sourceCurrency, setSourceCurrency] = useState<Currency>(SUPPORTED_CURRENCIES[0]);
-  const [destCurrency, setDestCurrency] = useState<Currency>(SUPPORTED_CURRENCIES[1]);
+  // Filter to only show fiat currencies
+  const FIAT_CURRENCIES = SUPPORTED_CURRENCIES.filter(c => c.isFiat);
+
+  const [sourceCurrency, setSourceCurrency] = useState<Currency>(FIAT_CURRENCIES[0]);
+  const [destCurrency, setDestCurrency] = useState<Currency>(FIAT_CURRENCIES[1]);
   const [amount, setAmount] = useState('');
   const [recipientAddress, setRecipientAddress] = useState('');
   const [loading, setLoading] = useState(false);
@@ -97,9 +126,15 @@ export default function PaymentForm({ onRoutesFound, publicKey }: PaymentFormPro
       }
 
       const data = await response.json();
-      
+
       if (data.routes && data.routes.length > 0) {
-        onRoutesFound?.(data.routes);
+        // Pass routes and rate metadata to parent
+        const metadata = {
+          rateSource: data.rateSource,
+          rateTimestamp: data.rateTimestamp,
+          baseRate: data.baseRate,
+        };
+        onRoutesFound?.(data.routes, metadata);
       } else {
         setError('No routes found for this currency pair. Try a different combination.');
       }
@@ -123,7 +158,7 @@ export default function PaymentForm({ onRoutesFound, publicKey }: PaymentFormPro
       <div className="mb-4 md:mb-6">
         <h2 className="text-xl md:text-2xl font-bold text-black mb-1 md:mb-2">Send Payment</h2>
         <p className="text-xs md:text-sm text-gray-600">
-          Compare FX routes across multiple providers and the Stellar network
+          Exchange fiat currencies (USD, EUR, INR, PHP)
         </p>
       </div>
 
@@ -155,12 +190,12 @@ export default function PaymentForm({ onRoutesFound, publicKey }: PaymentFormPro
             id="sourceCurrency"
             value={sourceCurrency.code}
             onChange={(e) => {
-              const currency = SUPPORTED_CURRENCIES.find(c => c.code === e.target.value);
+              const currency = FIAT_CURRENCIES.find(c => c.code === e.target.value);
               if (currency) setSourceCurrency(currency);
             }}
             className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 text-black text-sm md:text-base bg-white focus:outline-none focus:border-blue-500"
           >
-            {SUPPORTED_CURRENCIES.map((currency) => (
+            {FIAT_CURRENCIES.map((currency) => (
               <option key={currency.code} value={currency.code}>
                 {currency.code} - {currency.name}
               </option>
@@ -192,12 +227,12 @@ export default function PaymentForm({ onRoutesFound, publicKey }: PaymentFormPro
             id="destCurrency"
             value={destCurrency.code}
             onChange={(e) => {
-              const currency = SUPPORTED_CURRENCIES.find(c => c.code === e.target.value);
+              const currency = FIAT_CURRENCIES.find(c => c.code === e.target.value);
               if (currency) setDestCurrency(currency);
             }}
             className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 text-black text-sm md:text-base bg-white focus:outline-none focus:border-blue-500"
           >
-            {SUPPORTED_CURRENCIES.map((currency) => (
+            {FIAT_CURRENCIES.map((currency) => (
               <option key={currency.code} value={currency.code}>
                 {currency.code} - {currency.name}
               </option>

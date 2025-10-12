@@ -96,6 +96,7 @@ const TransactionCard = ({ transaction }: { transaction: Transaction }) => {
 
 export default function Transactions({ address }: { address?: string }) {
   const [timeFilter, setTimeFilter] = useState('Last 30 days');
+  const [currencyFilter, setCurrencyFilter] = useState('All currencies');
   const [items, setItems] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const account = useMemo(() => address || localStorage.getItem('stellarAddress') || localStorage.getItem('publicKey') || undefined, [address]);
@@ -118,7 +119,7 @@ export default function Transactions({ address }: { address?: string }) {
           id: r.id || String(idx + 1),
           type,
           amount: isNaN(amount) ? 0 : amount,
-          currency: 'XLM',
+          currency: assetCode,
           date: created.toLocaleDateString(),
           time: created.toLocaleTimeString(),
           hash: r.transaction_hash || r.id,
@@ -148,6 +149,20 @@ export default function Transactions({ address }: { address?: string }) {
     return () => window.removeEventListener('focus', onFocus);
   }, [account]);
 
+  // Extract unique currencies from transactions
+  const availableCurrencies = useMemo(() => {
+    const currencies = new Set(items.map(item => item.currency));
+    return ['All currencies', ...Array.from(currencies).sort()];
+  }, [items]);
+
+  // Filter transactions based on selected currency
+  const filteredItems = useMemo(() => {
+    if (currencyFilter === 'All currencies') {
+      return items;
+    }
+    return items.filter(item => item.currency === currencyFilter);
+  }, [items, currencyFilter]);
+
   return (
     <div className="h-full bg-white overflow-hidden">
       {/* Mobile & Tablet View - Stacked Layout */}
@@ -160,7 +175,7 @@ export default function Transactions({ address }: { address?: string }) {
           
           {/* Filters */}
           <div className="flex flex-wrap gap-3">
-            <select 
+            <select
               value={timeFilter}
               onChange={(e) => setTimeFilter(e.target.value)}
               className="px-4 py-2 text-black border border-gray-300 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -170,7 +185,17 @@ export default function Transactions({ address }: { address?: string }) {
               <option>Last 90 days</option>
               <option>All time</option>
             </select>
-            <div className="px-4 py-2 text-black border border-gray-300 bg-gray-50 text-sm font-medium">XLM</div>
+            <select
+              value={currencyFilter}
+              onChange={(e) => setCurrencyFilter(e.target.value)}
+              className="px-4 py-2 text-black border border-gray-300 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {availableCurrencies.map((currency) => (
+                <option key={currency} value={currency}>
+                  {currency}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -200,10 +225,12 @@ export default function Transactions({ address }: { address?: string }) {
         <div className="space-y-4">
           {loading ? (
             <div className="text-sm text-gray-500">Loading transactions…</div>
-          ) : items.length === 0 ? (
-            <div className="text-sm text-gray-500">No recent transactions</div>
+          ) : filteredItems.length === 0 ? (
+            <div className="text-sm text-gray-500">
+              {items.length === 0 ? 'No recent transactions' : `No transactions found for ${currencyFilter}`}
+            </div>
           ) : (
-            items.map((transaction) => (
+            filteredItems.map((transaction) => (
               <TransactionCard key={transaction.id} transaction={transaction} />
             ))
           )}
@@ -223,7 +250,7 @@ export default function Transactions({ address }: { address?: string }) {
               
               {/* Filters */}
               <div className="flex flex-wrap gap-3">
-                <select 
+                <select
                   value={timeFilter}
                   onChange={(e) => setTimeFilter(e.target.value)}
                   className="px-4 py-2 text-black border border-gray-300 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -233,7 +260,17 @@ export default function Transactions({ address }: { address?: string }) {
                   <option>Last 90 days</option>
                   <option>All time</option>
                 </select>
-                <div className="px-4 py-2 text-black border border-gray-300 bg-gray-50 text-sm font-medium">XLM</div>
+                <select
+                  value={currencyFilter}
+                  onChange={(e) => setCurrencyFilter(e.target.value)}
+                  className="px-4 py-2 text-black border border-gray-300 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {availableCurrencies.map((currency) => (
+                    <option key={currency} value={currency}>
+                      {currency}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>
@@ -266,10 +303,12 @@ export default function Transactions({ address }: { address?: string }) {
           <div className="p-6 xl:p-8 space-y-4">
             {loading ? (
               <div className="text-sm text-gray-500">Loading transactions…</div>
-            ) : items.length === 0 ? (
-              <div className="text-sm text-gray-500">No recent transactions</div>
+            ) : filteredItems.length === 0 ? (
+              <div className="text-sm text-gray-500">
+                {items.length === 0 ? 'No recent transactions' : `No transactions found for ${currencyFilter}`}
+              </div>
             ) : (
-              items.map((transaction) => (
+              filteredItems.map((transaction) => (
                 <TransactionCard key={transaction.id} transaction={transaction} />
               ))
             )}

@@ -26,5 +26,5 @@ body {
 
 /* Enforce sharp corners globally */
 * {
-  border-radius: 0 !important;
+  border-radius: 10 !important;
 }

@@ -1,10 +1,12 @@
 /**
  * Script to issue demo tokens on Stellar testnet
  * Creates INRTEST, USDTEST, PHPTEST, EURTEST tokens with real issuer accounts
+ * Uses real-time FX rates for liquidity seeding
  */
 
 const HORIZON_URL = 'https://horizon-testnet.stellar.org';
 const FRIENDBOT_URL = 'https://friendbot.stellar.org';
+const FX_API_URL = 'https://api.exchangerate-api.com/v4/latest/USD';
 
 // Generate a keypair
 function generateKeypair() {
@@ -105,13 +107,44 @@ async function submitTransaction(txXDR) {
     },
     body: `tx=${encodeURIComponent(txXDR)}`,
   });
-  
+
   if (!response.ok) {
     const error = await response.json();
     throw new Error(`Transaction failed: ${JSON.stringify(error)}`);
   }
-  
+
   return await response.json();
+}
+
+async function fetchRealRates() {
+  console.log(`🌍 Fetching real-time FX rates from ${FX_API_URL}...`);
+  try {
+    const response = await fetch(FX_API_URL);
+    if (!response.ok) {
+      throw new Error(`API responded with ${response.status}`);
+    }
+    const data = await response.json();
+
+    return {
+      INR: data.rates.INR,
+      PHP: data.rates.PHP,
+      EUR: data.rates.EUR,
+      timestamp: new Date(data.time_last_updated * 1000),
+      source: 'ExchangeRate-API',
+    };
+  } catch (error) {
+    console.error('❌ Failed to fetch real rates:', error.message);
+    console.log('⚠️  Using fallback rates...');
+
+    // Fallback to approximate rates
+    return {
+      INR: 83.5,
+      PHP: 56.2,
+      EUR: 0.92,
+      timestamp: new Date(),
+      source: 'Fallback (hardcoded)',
+    };
+  }
 }
 
 async function main() {
@@ -203,15 +236,23 @@ async function main() {
     
     // Create bidirectional liquidity (offers in both directions)
     console.log('\n4️⃣ Creating bidirectional liquidity...\n');
-    
-    // Define all currency pairs with market rates
+
+    // Fetch real-time FX rates
+    const realRates = await fetchRealRates();
+    console.log(`   ✅ Rates fetched from ${realRates.source}`);
+    console.log(`   📅 Last updated: ${realRates.timestamp.toISOString()}`);
+    console.log(`   💱 1 USD = ${realRates.INR.toFixed(2)} INR`);
+    console.log(`   💱 1 USD = ${realRates.PHP.toFixed(2)} PHP`);
+    console.log(`   💱 1 USD = ${realRates.EUR.toFixed(4)} EUR\n`);
+
+    // Define all currency pairs with real market rates
     const pairs = [
-      { base: 'USDTEST', quote: 'INRTEST', rate: 83.5 },  // 1 USD = 83.5 INR
-      { base: 'USDTEST', quote: 'PHPTEST', rate: 56.2 },  // 1 USD = 56.2 PHP
-      { base: 'USDTEST', quote: 'EURTEST', rate: 0.92 },  // 1 USD = 0.92 EUR
-      { base: 'EURTEST', quote: 'INRTEST', rate: 90.8 },  // 1 EUR = 90.8 INR
-      { base: 'EURTEST', quote: 'PHPTEST', rate: 61.1 },  // 1 EUR = 61.1 PHP
-      { base: 'PHPTEST', quote: 'INRTEST', rate: 1.486 }, // 1 PHP = 1.486 INR
+      { base: 'USDTEST', quote: 'INRTEST', rate: realRates.INR },
+      { base: 'USDTEST', quote: 'PHPTEST', rate: realRates.PHP },
+      { base: 'USDTEST', quote: 'EURTEST', rate: realRates.EUR },
+      { base: 'EURTEST', quote: 'INRTEST', rate: realRates.INR / realRates.EUR },
+      { base: 'EURTEST', quote: 'PHPTEST', rate: realRates.PHP / realRates.EUR },
+      { base: 'PHPTEST', quote: 'INRTEST', rate: realRates.INR / realRates.PHP },
     ];
     
     for (const pair of pairs) {

@@ -58,6 +58,7 @@ export default function LandingPage() {
             <div className="hidden md:flex items-center space-x-4 lg:space-x-6">
               <a href="#start" className="text-sm text-gray-700 hover:text-black transition-colors">Start</a>
               <a href="#how-it-works" className="text-sm text-gray-700 hover:text-black transition-colors">How It Works</a>
+              <Link href="/cross-chain" className="text-sm text-gray-700 hover:text-black transition-colors">Cross-Chain</Link>
               <a href="#faq" className="text-sm text-gray-700 hover:text-black transition-colors">FAQ</a>
               <a href="#blog" className="text-sm text-gray-700 hover:text-black transition-colors">Blog</a>
             </div>
@@ -90,6 +91,7 @@ export default function LandingPage() {
             <div className="flex flex-col space-y-3">
               <a href="#start" className="text-sm text-gray-700 hover:text-black" onClick={() => setMobileMenuOpen(false)}>Start</a>
               <a href="#how-it-works" className="text-sm text-gray-700 hover:text-black" onClick={() => setMobileMenuOpen(false)}>How It Works</a>
+              <Link href="/cross-chain" className="text-sm text-gray-700 hover:text-black" onClick={() => setMobileMenuOpen(false)}>Cross-Chain</Link>
               <a href="#faq" className="text-sm text-gray-700 hover:text-black" onClick={() => setMobileMenuOpen(false)}>FAQ</a>
               <a href="#blog" className="text-sm text-gray-700 hover:text-black" onClick={() => setMobileMenuOpen(false)}>Blog</a>
               <Link href="/login" className="text-sm text-gray-700 hover:text-black sm:hidden" onClick={() => setMobileMenuOpen(false)}>

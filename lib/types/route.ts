@@ -3,9 +3,10 @@
  * Defines the data structures for route discovery, comparison, and execution
  */
 
-export type RouteLegType = 
+export type RouteLegType =
   | 'offchain-quote'      // External FX provider quote
   | 'onchain-path'        // Stellar path payment hop
+  | 'stellar-path'        // Stellar DEX path payment
   | 'amm-hop'             // Liquidity pool swap
   | 'anchor-deposit'      // Simulated fiat → token deposit
   | 'anchor-withdraw'     // Simulated token → fiat withdrawal
@@ -51,7 +52,8 @@ export interface RouteQuote {
   grossSend: number;                // User-input nominal send amount
   legs: RouteLeg[];                 // Ordered array of route legs
   totalFees: number;                // Sum of all fees in destination asset units
-  netReceive: number;               // Amount received after all fees & slippage
+  netReceive: number;               // Amount received after all fees & slippage (may be fiat)
+  onChainReceive?: number;          // Amount received on-chain before withdrawal (in dest tokens)
   effectiveRate: number;            // netReceive / grossSend (overall conversion rate)
   riskScore: number;                // 0 (low risk) to 1 (high risk)
   slippagePct: number;              // Slippage buffer applied (percentage)
@@ -60,6 +62,13 @@ export interface RouteQuote {
     pathPaymentXDR?: string;        // Pre-built unsigned transaction XDR
     contractRouteHash?: string;     // Hash for contract attestation
     horizonPathId?: string;         // Horizon path payment endpoint reference
+    liquidityWarning?: string;      // Warning message for low liquidity
+    qualityScore?: number;          // Path quality score (0-100)
+    liquidityDepth?: number;        // Available liquidity depth
+    spread?: number;                // Bid-ask spread
+    note?: string;                  // Additional notes (e.g., "Mainnet only")
+    deepLink?: string;              // External link (e.g., Binance P2P)
+    isMainnetOnly?: boolean;        // Whether this route requires mainnet
   };
   providerName?: string;            // Primary provider name (for UI display)
   savingsVsBaseline?: number;       // Savings compared to worst route (in dest currency)
