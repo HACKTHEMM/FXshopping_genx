@@ -19,35 +19,61 @@ interface Currency {
 const TESTNET_ISSUER = 'GAYYZIK2JL6446376R5ZFRPCGNJ4EH2M7TFARTRFVURMW3AMMLU32RUC';
 
 const SUPPORTED_CURRENCIES: Currency[] = [
-  { 
-    code: 'INR', 
-    name: 'Indian Rupee', 
-    isFiat: true,
-    stellarAsset: { code: 'INRTEST', issuer: TESTNET_ISSUER }
+  // Cryptocurrencies
+  {
+    code: 'XLM',
+    name: 'Stellar Lumens',
+    isFiat: false,
+    stellarAsset: { code: 'XLM' }
   },
-  { 
-    code: 'USD', 
-    name: 'US Dollar', 
+  {
+    code: 'BTC',
+    name: 'Bitcoin',
+    isFiat: false,
+    stellarAsset: { code: 'BTC', issuer: TESTNET_ISSUER }
+  },
+  {
+    code: 'ETH',
+    name: 'Ethereum',
+    isFiat: false,
+    stellarAsset: { code: 'ETH', issuer: TESTNET_ISSUER }
+  },
+  {
+    code: 'USDC',
+    name: 'USD Coin',
+    isFiat: false,
+    stellarAsset: { code: 'USDC', issuer: TESTNET_ISSUER }
+  },
+  {
+    code: 'USDT',
+    name: 'Tether',
+    isFiat: false,
+    stellarAsset: { code: 'USDT', issuer: TESTNET_ISSUER }
+  },
+  // Fiat currencies for traditional FX
+  {
+    code: 'USD',
+    name: 'US Dollar',
     isFiat: true,
     stellarAsset: { code: 'USDTEST', issuer: TESTNET_ISSUER }
   },
-  { 
-    code: 'EUR', 
-    name: 'Euro', 
+  {
+    code: 'EUR',
+    name: 'Euro',
     isFiat: true,
     stellarAsset: { code: 'EURTEST', issuer: TESTNET_ISSUER }
   },
-  { 
-    code: 'PHP', 
-    name: 'Philippine Peso', 
+  {
+    code: 'INR',
+    name: 'Indian Rupee',
+    isFiat: true,
+    stellarAsset: { code: 'INRTEST', issuer: TESTNET_ISSUER }
+  },
+  {
+    code: 'PHP',
+    name: 'Philippine Peso',
     isFiat: true,
     stellarAsset: { code: 'PHPTEST', issuer: TESTNET_ISSUER }
-  },
-  { 
-    code: 'XLM', 
-    name: 'Stellar Lumens', 
-    isFiat: false,
-    stellarAsset: { code: 'XLM' }
   },
 ];
 
@@ -129,7 +155,7 @@ export default function PaymentForm({ onRoutesFound, publicKey }: PaymentFormPro
       <div className="mb-4 md:mb-6">
         <h2 className="text-xl md:text-2xl font-bold text-black mb-1 md:mb-2">Send Payment</h2>
         <p className="text-xs md:text-sm text-gray-600">
-          Compare FX routes across multiple providers and the Stellar network
+          Swap crypto (BTC, ETH, USDC, USDT) to/from XLM or exchange fiat currencies
         </p>
       </div>
 
