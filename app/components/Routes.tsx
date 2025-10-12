@@ -28,11 +28,11 @@ export default function Routes({ publicKey }: RoutesProps) {
   const [linkedRouteId, setLinkedRouteId] = useState<string | null>(null);
   const [contractRouteData, setContractRouteData] = useState<ContractRouteData | null>(null);
 
-  const handleRoutesFound = (foundRoutes: RouteQuote[], metadata?: Record<string, unknown>) => {
+  const handleRoutesFound = (foundRoutes: RouteQuote[], metadata?: unknown) => {
     setRoutes(foundRoutes);
-    setRateMetadata(metadata || null);
+    setRateMetadata((metadata as Record<string, unknown>) || null);
     setSelectedRoute(null); // Reset selection
-    
+
     // Smooth scroll to results on mobile
     if (typeof window !== 'undefined' && window.innerWidth < 1024) {
       setTimeout(() => {

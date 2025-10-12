@@ -263,7 +263,7 @@ export class WormholeService {
   private async calculateFees(
     sourceChain: WormholeChainId,
     destChain: WormholeChainId,
-    _asset: WormholeAsset,
+    asset: WormholeAsset,
     amount: number
   ) {
     // const sourceConfig = this.config.chains[sourceChain];
@@ -273,7 +273,7 @@ export class WormholeService {
     const wormholeFee = amount * 0.0001;
 
     // Gas fee estimation (simplified)
-    const gasFee = this.estimateGasFee(sourceChain, _asset);
+    const gasFee = this.estimateGasFee(sourceChain, asset);
 
     // Optional relay fee for automatic completion
     const relayFee = destChain === 'solana' ? 0.001 : 0; // SOL for relay

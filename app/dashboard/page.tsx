@@ -18,7 +18,7 @@ const calculateBalanceHistory = async (publicKey: string) => {
     // Get current balance
     const accountResponse = await fetch(`https://horizon-testnet.stellar.org/accounts/${publicKey}`);
     const accountData = await accountResponse.json();
-    const currentXLM = accountData.balances.find((b: any) => b.asset_type === 'native')?.balance || '0';
+    const currentXLM = accountData.balances.find((b: { asset_type?: string }) => b.asset_type === 'native')?.balance || '0';
     
     let balance = parseFloat(currentXLM);
     const history: { month: string; amount: number }[] = [];
@@ -78,7 +78,12 @@ export default function Dashboard() {
   const [inrtestBalance, setInrtestBalance] = useState<string>('0');
   const [balanceHistory, setBalanceHistory] = useState<Array<{ month: string; amount: number }>>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+  const [recentTransactions, setRecentTransactions] = useState<Array<{
+    to?: string;
+    from?: string;
+    amount?: string;
+    created_at?: string;
+  }>>([]);
   const [xlmPrice, setXlmPrice] = useState<number>(0);
   const [priceChange, setPriceChange] = useState<number>(0);
   const [usdToInrRate, setUsdToInrRate] = useState<number>(88.7);
@@ -468,7 +473,7 @@ export default function Dashboard() {
                                 {tx.to === publicKey ? 'Received' : 'Sent'}
                               </div>
                               <div className="text-xs text-gray-500">
-                                {new Date(tx.created_at).toLocaleDateString()}
+                                {new Date(tx.created_at || Date.now()).toLocaleDateString()}
                               </div>
                             </div>
                           </div>
@@ -725,7 +730,7 @@ export default function Dashboard() {
                                     {tx.to === publicKey ? 'Received' : 'Sent'}
                                   </div>
                                   <div className="text-xs text-gray-500">
-                                    {new Date(tx.created_at).toLocaleDateString()}
+                                    {new Date(tx.created_at || Date.now()).toLocaleDateString()}
                                   </div>
                                 </div>
                               </div>

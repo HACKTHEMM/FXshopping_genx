@@ -68,8 +68,8 @@ export default function TestnetAnchor() {
       const key = await connectFreighter();
       setPublicKey(key);
       await checkBalance(key);
-    } catch (err: any) {
-      setError(err.message || 'Failed to connect wallet');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to connect wallet');
     }
   };
 
@@ -85,8 +85,8 @@ export default function TestnetAnchor() {
       if (!data.accountExists) {
         setError(data.message);
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to check balance');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to check balance');
     } finally {
       setLoading(false);
     }
@@ -137,9 +137,9 @@ export default function TestnetAnchor() {
       setSuccess('Trustlines added successfully!');
       await checkBalance(publicKey);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Trustline error:', err);
-      setError(err.message || 'Failed to add trustlines');
+      setError(err instanceof Error ? err.message : 'Failed to add trustlines');
     } finally {
       setLoading(false);
     }
@@ -172,8 +172,8 @@ export default function TestnetAnchor() {
       setSuccess(`${amount} ${assetCode} deposited successfully!`);
       await checkBalance(publicKey);
 
-    } catch (err: any) {
-      setError(err.message || 'Failed to request tokens');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to request tokens');
     } finally {
       setLoading(false);
     }

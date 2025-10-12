@@ -129,11 +129,11 @@ async function autoDeployContract(): Promise<DeploymentResult> {
       explorerUrl: `https://stellar.expert/explorer/testnet/contract/${contractId}`
     };
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Contract deployment failed:', error);
     return {
       success: false,
-      error: error.message || 'Unknown deployment error'
+      error: error instanceof Error ? error.message : 'Unknown deployment error'
     };
   }
 }
@@ -159,11 +159,11 @@ export async function GET(request: NextRequest) {
     const result = await autoDeployContract();
     return NextResponse.json(result);
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Contract deployment API error:', error);
     return NextResponse.json({
       success: false,
-      error: error.message || 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
 }
@@ -177,11 +177,11 @@ export async function POST(request: NextRequest) {
     const result = await autoDeployContract();
     return NextResponse.json(result);
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Contract deployment API error:', error);
     return NextResponse.json({
       success: false,
-      error: error.message || 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
 }

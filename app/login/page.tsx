@@ -72,7 +72,7 @@ export default function LoginPage() {
           onClick={checkFreighterInstalled}
           className="mt-4 text-blue-600 underline"
         >
-          I've installed it, check again
+          I&apos;ve installed it, check again
         </button>
       </div>
     );

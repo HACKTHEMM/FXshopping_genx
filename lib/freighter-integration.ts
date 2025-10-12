@@ -63,14 +63,14 @@ export async function connectFreighter(): Promise<string> {
 
     return addressResult.address;
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Freighter connection error:', error);
 
-    if (error.message?.includes('User declined access')) {
+    if (error instanceof Error && error.message?.includes('User declined access')) {
       throw new Error('Please approve the connection request in Freighter');
     }
 
-    throw new Error(`Failed to connect to Freighter: ${error.message}`);
+    throw new Error(`Failed to connect to Freighter: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
@@ -139,28 +139,28 @@ export async function signWithFreighter(xdr: string): Promise<string> {
 
     return signResult.signedTxXdr;
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Freighter signing error:', error);
 
     // User declined/cancelled
-    if (error.message?.includes('User declined') ||
+    if (error instanceof Error && (error.message?.includes('User declined') ||
         error.message?.includes('User cancelled') ||
-        error.message?.includes('rejected')) {
+        error.message?.includes('rejected'))) {
       throw new Error('Transaction cancelled by user');
     }
 
     // Network mismatch
-    if (error.message?.includes('network') || error.message?.includes('Network')) {
+    if (error instanceof Error && (error.message?.includes('network') || error.message?.includes('Network'))) {
       throw new Error('Network mismatch. Please ensure Freighter is on Testnet.');
     }
 
     // Timeout
-    if (error.message?.includes('timeout') || error.message?.includes('Timeout')) {
+    if (error instanceof Error && (error.message?.includes('timeout') || error.message?.includes('Timeout'))) {
       throw new Error('Signing timeout. Please try again.');
     }
 
     // Generic error with details
-    const errorMsg = error.message || 'Unknown error';
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
     throw new Error(`Failed to sign transaction: ${errorMsg}`);
   }
 }
@@ -225,8 +225,8 @@ export const FREIGHTER_ERRORS = {
  * @param error - Error from Freighter API
  * @returns User-friendly error message
  */
-export function parseFreighterError(error: any): string {
-  const message = error.message?.toLowerCase() || '';
+export function parseFreighterError(error: unknown): string {
+  const message = (error instanceof Error ? error.message : '').toLowerCase();
 
   if (message.includes('not found') || message.includes('not installed')) {
     return FREIGHTER_ERRORS.NOT_INSTALLED;
@@ -248,5 +248,5 @@ export function parseFreighterError(error: any): string {
     return FREIGHTER_ERRORS.NO_TRUSTLINE;
   }
 
-  return error.message || 'An unknown error occurred';
+  return (error instanceof Error ? error.message : null) || 'An unknown error occurred';
 }

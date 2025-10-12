@@ -4,7 +4,6 @@
  */
 
 import { 
-  Keypair, 
   TransactionBuilder, 
   Networks, 
   Operation, 
@@ -84,7 +83,8 @@ export async function createAllTrustlines(userPublicKey: string): Promise<{
         
         // Check if trustline already exists
         const existingTrustline = account.balances.find(
-          (balance: any) => 
+          (balance) => 
+            'asset_code' in balance && 'asset_issuer' in balance &&
             balance.asset_code === assetConfig.code && 
             balance.asset_issuer === assetConfig.issuer
         );
@@ -169,7 +169,8 @@ export async function createSingleTrustline(
     
     // Check if trustline already exists
     const existingTrustline = account.balances.find(
-      (balance: any) => 
+      (balance) => 
+        'asset_code' in balance && 'asset_issuer' in balance &&
         balance.asset_code === assetCode && 
         balance.asset_issuer === issuer
     );
@@ -226,7 +227,8 @@ export async function checkMissingTrustlines(userPublicKey: string): Promise<{
     
     for (const assetConfig of ASSETS_TO_CREATE_TRUSTLINES) {
       const trustlineExists = account.balances.find(
-        (balance: any) => 
+        (balance) => 
+          'asset_code' in balance && 'asset_issuer' in balance &&
           balance.asset_code === assetConfig.code && 
           balance.asset_issuer === assetConfig.issuer
       );

@@ -106,9 +106,19 @@ export default function Transactions({ address }: { address?: string }) {
     try {
       const res = await fetch(`${horizonUrl}/accounts/${addr}/payments?limit=20&order=desc`);
       const data = await res.json();
-      const records = (data._embedded?.records || []) as any[];
+      const records = (data._embedded?.records || []) as Array<{
+        created_at?: string;
+        amount?: string;
+        starting_balance?: string;
+        asset_code?: string;
+        asset_type?: string;
+        type?: string;
+        to?: string;
+        id?: string;
+        transaction_hash?: string;
+      }>;
       const mapped: Transaction[] = records.map((r, idx) => {
-        const created = new Date(r.created_at);
+        const created = new Date(r.created_at || Date.now());
         const amount = Number(r.amount || r.starting_balance || 0);
         const assetCode = r.asset_code || (r.asset_type === 'native' ? 'XLM' : 'ASSET');
         let type: Transaction['type'] = 'deposit-to-wallet';
@@ -122,7 +132,7 @@ export default function Transactions({ address }: { address?: string }) {
           currency: assetCode,
           date: created.toLocaleDateString(),
           time: created.toLocaleTimeString(),
-          hash: r.transaction_hash || r.id,
+          hash: r.transaction_hash || r.id || '',
         };
       });
       setItems(mapped);
@@ -203,7 +213,7 @@ export default function Transactions({ address }: { address?: string }) {
         <div className="space-y-4">
           <div className="space-y-2">
             <h2 className="text-2xl sm:text-3xl font-medium text-black leading-tight">
-              You're building momentum.
+              You&apos;re building momentum.
             </h2>
             <div className="text-2xl sm:text-3xl font-medium leading-tight">
               <span className="text-black">Keep your </span>
@@ -279,7 +289,7 @@ export default function Transactions({ address }: { address?: string }) {
           <div className="space-y-4 xl:space-y-5 pb-4">
             <div className="space-y-2">
               <h2 className="text-2xl xl:text-3xl 2xl:text-4xl font-medium text-black leading-tight">
-                You're building momentum.
+                You&apos;re building momentum.
               </h2>
               <div className="text-2xl xl:text-3xl 2xl:text-4xl font-medium leading-tight">
                 <span className="text-black">Keep your </span>

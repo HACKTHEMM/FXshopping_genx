@@ -210,7 +210,7 @@ export default function CrossChainPage() {
                 </div>
               </div>
               <p className="text-xs md:text-sm text-gray-700">
-                Powered by Wormhole's battle-tested infrastructure with billions in TVL
+                Powered by Wormhole&apos;s battle-tested infrastructure with billions in TVL
               </p>
             </div>
 

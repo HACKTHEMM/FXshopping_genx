@@ -319,16 +319,16 @@ export default function LandingPage() {
                   Got questions?
                 </h2>
                 <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-black mb-4 sm:mb-6">
-                  We've got answers.
+                  We&apos;ve got answers.
                 </h3>
                 <p className="text-gray-600 text-sm sm:text-base lg:text-lg">
-                  If you can't find what you're looking for, feel free to reach out to us directly through our 24/7 customer support.
+                  If you can&apos;t find what you&apos;re looking for, feel free to reach out to us directly through our 24/7 customer support.
                 </p>
               </div>
 
               <div className="space-y-3 sm:space-y-4">
                 <p className="text-xs sm:text-sm text-gray-600">
-                  Can't find your answer from our FAQ?
+                  Can&apos;t find your answer from our FAQ?
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Link href="/dashboard" className="bg-blue-600 text-white px-6 py-3 font-medium hover:bg-blue-700 transition-colors text-xs sm:text-sm text-center">

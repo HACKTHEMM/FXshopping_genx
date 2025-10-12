@@ -45,10 +45,10 @@ export async function GET(request: NextRequest) {
       rateSource = 'ExchangeRate-API (live)';
 
       console.log(`📊 FX Rate: ${from} → ${to} = ${baseRate.toFixed(3)} (${rateSource})`);
-    } catch (error: any) {
-      console.error('Failed to fetch FX rate:', error.message);
+    } catch (error: unknown) {
+      console.error('Failed to fetch FX rate:', error instanceof Error ? error.message : 'Unknown error');
       return NextResponse.json(
-        { error: `Exchange rate not available for ${from} to ${to}`, details: error.message },
+        { error: `Exchange rate not available for ${from} to ${to}`, details: error instanceof Error ? error.message : 'Unknown error' },
         { status: 400 }
       );
     }
@@ -134,12 +134,12 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Quotes API error:', error);
     return NextResponse.json(
       { 
         error: 'Internal server error', 
-        message: error.message 
+        message: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );

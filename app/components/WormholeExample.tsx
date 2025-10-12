@@ -346,7 +346,7 @@ export default function WormholeExample() {
       <div className="mt-6 p-4 bg-gray-50 border border-gray-200">
         <h4 className="font-medium text-gray-900 mb-2">Technical Details</h4>
         <div className="text-sm text-gray-600 space-y-1">
-          <div>• Uses Wormhole's Core Bridge for cross-chain messaging</div>
+          <div>• Uses Wormhole&apos;s Core Bridge for cross-chain messaging</div>
           <div>• ETH is locked on Ethereum, SOL is minted on Solana</div>
           <div>• VAA (Verifiable Action Approval) ensures security</div>
           <div>• Estimated completion time: 5-15 minutes</div>

@@ -43,9 +43,10 @@ export async function GET(request: NextRequest) {
     let userAccount;
     try {
       userAccount = await server.loadAccount(userPublicKey);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Account not found
-      if (error.response?.status === 404) {
+      if (error && typeof error === 'object' && 'response' in error && 
+          (error as { response?: { status?: number } }).response?.status === 404) {
         return NextResponse.json({
           success: false,
           accountExists: false,
@@ -59,7 +60,8 @@ export async function GET(request: NextRequest) {
     // Check trustlines and balances for our test assets
     const assetStatus = TEST_ASSETS.map(assetCode => {
       const balance = userAccount.balances.find(
-        (b: any) =>
+        (b) =>
+          'asset_code' in b && 'asset_issuer' in b &&
           b.asset_code === assetCode &&
           b.asset_issuer === issuerPublic
       );
@@ -75,7 +77,7 @@ export async function GET(request: NextRequest) {
 
     // Check XLM balance
     const xlmBalance = userAccount.balances.find(
-      (b: any) => b.asset_type === 'native'
+      (b) => 'asset_type' in b && b.asset_type === 'native'
     );
 
     const xlmBalanceValue = xlmBalance ? parseFloat(xlmBalance.balance) : 0;
@@ -122,12 +124,12 @@ export async function GET(request: NextRequest) {
         : 'No trustlines found. Please add trustlines first.',
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Balance check error:', error);
     return NextResponse.json(
       {
         error: 'Failed to check balance',
-        message: error.message || 'Unknown error',
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

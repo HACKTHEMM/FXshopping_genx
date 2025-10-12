@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     const requestId = `req-${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
     // Store rate metadata from quotes API
-    let rateMetadata: any = null;
+    let rateMetadata: { rateSource?: string; rateTimestamp?: string; baseRate?: number } | null = null;
 
     // 1. Fetch off-chain provider quotes (if fiat currencies are involved)
     if (sourceFiat && destFiat) {
@@ -417,13 +417,13 @@ export async function POST(request: NextRequest) {
       baseRate: rateMetadata?.baseRate,
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Route comparison error:', error);
     return NextResponse.json(
       { 
         error: 'Internal server error', 
-        message: error.message,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined,
       },
       { status: 500 }
     );

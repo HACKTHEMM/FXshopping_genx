@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { RouteQuote, StellarAsset } from '@/lib/types/route';
 
 interface PaymentFormProps {
-  onRoutesFound?: (routes: RouteQuote[], metadata?: any) => void;
+  onRoutesFound?: (routes: RouteQuote[], metadata?: unknown) => void;
   publicKey?: string;
 }
 
@@ -139,9 +139,9 @@ export default function PaymentForm({ onRoutesFound, publicKey }: PaymentFormPro
         setError('No routes found for this currency pair. Try a different combination.');
       }
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Payment form error:', err);
-      setError(err.message || 'An error occurred while searching for routes');
+      setError(err instanceof Error ? err.message : 'An error occurred while searching for routes');
     } finally {
       setLoading(false);
     }

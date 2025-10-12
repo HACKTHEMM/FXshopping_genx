@@ -145,9 +145,9 @@ export async function buildPathPaymentTransaction(
       return xdr;
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error building transaction:', error);
-    throw new Error(`Failed to build transaction: ${error.message}`);
+    throw new Error(`Failed to build transaction: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
@@ -187,14 +187,20 @@ export async function submitTransaction(
       explorerUrl,
     };
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error submitting transaction:', error);
 
     // Parse Horizon error
-    let errorMessage = error.message;
-    if (error.response?.data?.extras?.result_codes) {
-      const codes = error.response.data.extras.result_codes;
-      errorMessage = `Transaction failed: ${codes.transaction} (${codes.operations?.join(', ')})`;
+    let errorMessage = 'Unknown error';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+    if (error && typeof error === 'object' && 'response' in error) {
+      const response = (error as { response?: { data?: { extras?: { result_codes?: { transaction?: string; operations?: string[] } } } } }).response;
+      if (response?.data?.extras?.result_codes) {
+        const codes = response.data.extras.result_codes;
+        errorMessage = `Transaction failed: ${codes.transaction} (${codes.operations?.join(', ')})`;
+      }
     }
 
     throw new Error(errorMessage);
@@ -221,7 +227,8 @@ export async function hasTrustline(
     const account = await server.loadAccount(publicKey);
 
     const balance = account.balances.find(
-      (b: any) =>
+      (b) =>
+        'asset_code' in b && 'asset_issuer' in b &&
         b.asset_code === asset.code &&
         b.asset_issuer === asset.issuer
     );
@@ -251,12 +258,13 @@ export async function getBalance(
 
     if (!asset.issuer) {
       // Native XLM
-      const xlmBalance = account.balances.find((b: any) => b.asset_type === 'native');
+      const xlmBalance = account.balances.find((b) => 'asset_type' in b && b.asset_type === 'native');
       return xlmBalance?.balance || '0';
     }
 
     const balance = account.balances.find(
-      (b: any) =>
+      (b) =>
+        'asset_code' in b && 'asset_issuer' in b &&
         b.asset_code === asset.code &&
         b.asset_issuer === asset.issuer
     );

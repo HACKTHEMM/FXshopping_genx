@@ -22,7 +22,11 @@ export default function Login({ onLogin }: LoginProps) {
     setError(null);
     setIsConnecting(true);
     try {
-      const freighter = (typeof window !== 'undefined' && (window as any).freighterApi) as any;
+      const freighter = (typeof window !== 'undefined' && (window as { freighterApi?: unknown }).freighterApi) as {
+        isConnected?: () => Promise<boolean>;
+        getPublicKey?: () => Promise<string>;
+        requestAccess?: () => Promise<void>;
+      } | undefined;
       if (!freighter || typeof freighter.isConnected !== 'function') {
         setError('Freighter extension not detected. Please install it and try again.');
         return;
@@ -43,7 +47,7 @@ export default function Login({ onLogin }: LoginProps) {
       } else {
         setError('Failed to retrieve wallet address.');
       }
-    } catch (e) {
+    } catch (_e) {
       setError('Freighter not available or access denied. Please install or allow it.');
     } finally {
       setIsConnecting(false);

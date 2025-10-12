@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
     const paths = data._embedded?.records || [];
 
     // Helper function to analyze orderbook liquidity depth
-    const analyzeOrderbookDepth = (asks: any[], amountNeeded: number) => {
+    const analyzeOrderbookDepth = (asks: { amount?: string; price?: string }[], amountNeeded: number) => {
       if (!asks || asks.length === 0) {
         return null;
       }
@@ -116,8 +116,8 @@ export async function GET(request: NextRequest) {
       let totalCost = 0;
 
       for (const ask of asks) {
-        const askAmount = parseFloat(ask.amount);
-        const askPrice = parseFloat(ask.price);
+        const askAmount = parseFloat(ask.amount || '0');
+        const askPrice = parseFloat(ask.price || '0');
 
         if (cumulativeAmount >= amountNeeded) break;
 
@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
 
       const hasInsufficientLiquidity = cumulativeAmount < amountNeeded;
       const avgRate = cumulativeAmount > 0 ? weightedRate / cumulativeAmount : 0;
-      const spread = asks.length > 0 ? parseFloat(asks[0].price) : 0;
+      const spread = asks.length > 0 ? parseFloat(asks[0].price || '0') : 0;
 
       return {
         availableLiquidity: cumulativeAmount,
@@ -140,7 +140,7 @@ export async function GET(request: NextRequest) {
         weightedAverageRate: avgRate,
         spread,
         ordersUsed: asks.slice(0, Math.min(10, asks.length)).length,
-      };
+      } as const;
     };
 
     // If no paths found via path payment API, try orderbook directly
@@ -200,7 +200,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Calculate path quality score
-    const calculatePathQuality = (path: any, hops: number, liquidityAnalysis?: any) => {
+    const calculatePathQuality = (path: unknown, hops: number, liquidityAnalysis?: {
+      availableLiquidity: number;
+      requiredAmount: number;
+      sufficientLiquidity: boolean;
+      weightedAverageRate: number;
+      spread: number;
+      ordersUsed: number;
+    } | null) => {
       let score = 100;
 
       // Penalty for each hop (more hops = more risk)
@@ -208,7 +215,7 @@ export async function GET(request: NextRequest) {
 
       // Penalty for low liquidity (if available)
       if (liquidityAnalysis) {
-        const liquidityDepth = liquidityAnalysis.availableLiquidity;
+        const liquidityDepth = liquidityAnalysis.availableLiquidity || 0;
 
         if (!liquidityAnalysis.sufficientLiquidity) {
           score -= 30; // Major penalty for insufficient liquidity
@@ -232,21 +239,41 @@ export async function GET(request: NextRequest) {
         liquidityDepth: liquidityAnalysis?.availableLiquidity || null,
         spread: liquidityAnalysis?.spread || null,
         reliability: 0.95, // Default reliability score
-        warnings: liquidityAnalysis && !liquidityAnalysis.sufficientLiquidity
+        warnings: liquidityAnalysis && !liquidityAnalysis.sufficientLiquidity && liquidityAnalysis.availableLiquidity !== undefined
           ? [`Insufficient liquidity: ${liquidityAnalysis.availableLiquidity.toFixed(2)} of ${liquidityAnalysis.requiredAmount} available`]
           : [],
       };
     };
 
     // Transform and enrich path data
-    const enrichedPaths = paths.map((path: any, index: number) => {
-      const sourceAmount = parseFloat(path.source_amount);
-      const destAmount = parseFloat(path.destination_amount);
+    type LiquidityAnalysisType = {
+      availableLiquidity: number;
+      requiredAmount: number;
+      sufficientLiquidity: boolean;
+      weightedAverageRate: number;
+      spread: number;
+      ordersUsed: number;
+    };
+
+    const enrichedPaths = paths.map((path: {
+      source_amount?: string;
+      destination_amount?: string;
+      path?: Array<{ asset_type?: string; asset_code?: string; asset_issuer?: string }>;
+      source_asset_type?: string;
+      source_asset_code?: string;
+      source_asset_issuer?: string;
+      destination_asset_type?: string;
+      destination_asset_code?: string;
+      destination_asset_issuer?: string;
+      liquidityAnalysis?: LiquidityAnalysisType;
+    }, index: number) => {
+      const sourceAmount = parseFloat(path.source_amount || '0');
+      const destAmount = parseFloat(path.destination_amount || '0');
       const rate = sourceAmount > 0 ? destAmount / sourceAmount : 0;
       // Truncate rate to 3 decimal places for consistency
       const truncatedRate = Math.floor(rate * 1000) / 1000;
-      const hops = path.path.length + 1;
-      const quality = calculatePathQuality(path, hops, path.liquidityAnalysis);
+      const hops = (path.path?.length || 0) + 1;
+      const quality = calculatePathQuality(path, hops, path.liquidityAnalysis || null);
 
       return {
         pathId: `path-${index}`,
@@ -262,7 +289,7 @@ export async function GET(request: NextRequest) {
           issuer: path.destination_asset_issuer,
           amount: destAmount,
         },
-        path: path.path.map((asset: any) => ({
+        path: (path.path || []).map((asset) => ({
           type: asset.asset_type,
           code: asset.asset_code || 'XLM',
           issuer: asset.asset_issuer,
@@ -286,13 +313,13 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Path discovery error:', error);
     return NextResponse.json(
       { 
         error: 'Internal server error', 
-        message: error.message,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined 
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined 
       },
       { status: 500 }
     );

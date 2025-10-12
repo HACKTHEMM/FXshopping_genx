@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     let userAccount;
     try {
       userAccount = await server.loadAccount(userPublicKey);
-    } catch (error: any) {
+    } catch (error: unknown) {
       return NextResponse.json(
         { error: 'User account not found. Please fund account with XLM via Friendbot first.' },
         { status: 404 }
@@ -78,7 +78,8 @@ export async function POST(request: NextRequest) {
 
     // Check if user has trustline for this asset
     const hasTrustline = userAccount.balances.some(
-      (balance: any) =>
+      (balance) =>
+        'asset_code' in balance && 'asset_issuer' in balance &&
         balance.asset_code === assetCode &&
         balance.asset_issuer === issuerPublic
     );
@@ -135,12 +136,14 @@ export async function POST(request: NextRequest) {
       message: `Successfully deposited ${depositAmount} ${assetCode} to your account`,
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Anchor deposit error:', error);
 
     // Check for specific error types
-    if (error.response?.data?.extras?.result_codes) {
-      const resultCodes = error.response.data.extras.result_codes;
+    if (error && typeof error === 'object' && 'response' in error) {
+      const response = (error as { response?: { data?: { extras?: { result_codes?: { transaction?: string; operations?: string[] } } } } }).response;
+      if (response?.data?.extras?.result_codes) {
+        const resultCodes = response.data.extras.result_codes;
       console.error('Transaction result codes:', resultCodes);
 
       // Insufficient balance
@@ -158,13 +161,15 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
+      }
     }
 
     return NextResponse.json(
       {
         error: 'Deposit failed',
-        message: error.message || 'Unknown error',
-        details: error.response?.data?.extras?.result_codes,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        details: error && typeof error === 'object' && 'response' in error ? 
+          (error as { response?: { data?: { extras?: { result_codes?: { transaction?: string; operations?: string[] } } } } }).response?.data?.extras?.result_codes : undefined,
       },
       { status: 500 }
     );
@@ -196,10 +201,10 @@ export async function GET(request: NextRequest) {
       },
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Anchor info error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch anchor info', message: error.message },
+      { error: 'Failed to fetch anchor info', message: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
