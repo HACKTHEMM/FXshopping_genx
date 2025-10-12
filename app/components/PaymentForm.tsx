@@ -78,8 +78,11 @@ const SUPPORTED_CURRENCIES: Currency[] = [
 ];
 
 export default function PaymentForm({ onRoutesFound, publicKey }: PaymentFormProps) {
-  const [sourceCurrency, setSourceCurrency] = useState<Currency>(SUPPORTED_CURRENCIES[0]);
-  const [destCurrency, setDestCurrency] = useState<Currency>(SUPPORTED_CURRENCIES[1]);
+  // Filter to only show fiat currencies
+  const FIAT_CURRENCIES = SUPPORTED_CURRENCIES.filter(c => c.isFiat);
+
+  const [sourceCurrency, setSourceCurrency] = useState<Currency>(FIAT_CURRENCIES[0]);
+  const [destCurrency, setDestCurrency] = useState<Currency>(FIAT_CURRENCIES[1]);
   const [amount, setAmount] = useState('');
   const [recipientAddress, setRecipientAddress] = useState('');
   const [loading, setLoading] = useState(false);
@@ -155,7 +158,7 @@ export default function PaymentForm({ onRoutesFound, publicKey }: PaymentFormPro
       <div className="mb-4 md:mb-6">
         <h2 className="text-xl md:text-2xl font-bold text-black mb-1 md:mb-2">Send Payment</h2>
         <p className="text-xs md:text-sm text-gray-600">
-          Swap crypto (BTC, ETH, USDC, USDT) to/from XLM or exchange fiat currencies
+          Exchange fiat currencies (USD, EUR, INR, PHP)
         </p>
       </div>
 
@@ -187,12 +190,12 @@ export default function PaymentForm({ onRoutesFound, publicKey }: PaymentFormPro
             id="sourceCurrency"
             value={sourceCurrency.code}
             onChange={(e) => {
-              const currency = SUPPORTED_CURRENCIES.find(c => c.code === e.target.value);
+              const currency = FIAT_CURRENCIES.find(c => c.code === e.target.value);
               if (currency) setSourceCurrency(currency);
             }}
             className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 text-black text-sm md:text-base bg-white focus:outline-none focus:border-blue-500"
           >
-            {SUPPORTED_CURRENCIES.map((currency) => (
+            {FIAT_CURRENCIES.map((currency) => (
               <option key={currency.code} value={currency.code}>
                 {currency.code} - {currency.name}
               </option>
@@ -224,12 +227,12 @@ export default function PaymentForm({ onRoutesFound, publicKey }: PaymentFormPro
             id="destCurrency"
             value={destCurrency.code}
             onChange={(e) => {
-              const currency = SUPPORTED_CURRENCIES.find(c => c.code === e.target.value);
+              const currency = FIAT_CURRENCIES.find(c => c.code === e.target.value);
               if (currency) setDestCurrency(currency);
             }}
             className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 text-black text-sm md:text-base bg-white focus:outline-none focus:border-blue-500"
           >
-            {SUPPORTED_CURRENCIES.map((currency) => (
+            {FIAT_CURRENCIES.map((currency) => (
               <option key={currency.code} value={currency.code}>
                 {currency.code} - {currency.name}
               </option>

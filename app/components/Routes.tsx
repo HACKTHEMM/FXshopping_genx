@@ -162,9 +162,9 @@ export default function Routes({ publicKey }: RoutesProps) {
     <div className="space-y-4 md:space-y-6">
       {/* Page Header */}
       <div className="bg-white border border-gray-200 p-4 md:p-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-black mb-1 md:mb-2">Crypto Swap & FX Routes</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-black mb-1 md:mb-2">Fiat Currency Exchange Routes</h1>
         <p className="text-sm md:text-base text-gray-600">
-          Swap crypto assets (BTC, ETH, USDC, USDT) to/from XLM on Stellar DEX or exchange fiat currencies
+          Exchange fiat currencies (USD, EUR, INR, PHP) using Stellar network
         </p>
       </div>
 
